@@ -1,0 +1,14 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/option1"
+        android:title="Satellite Mode" />
+    <item
+        android:id="@+id/option2"
+        android:title="Hybrid Mode" />
+    <item
+        android:id="@+id/option3"
+        android:title="Normal Mode" />
+    <item
+        android:id="@+id/option4"
+        android:title="Terrain Mode" />
+</menu>
