@@ -14,7 +14,6 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -52,10 +51,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
     private GoogleMap mMap;
-    private DatabaseReference mDatabase;
     private Marker m1,mark;
     BitmapDescriptor customMarker;
     private SearchView Map_Search;
@@ -69,6 +68,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(R.layout.activity_maps);
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
+        assert mapFragment != null;
         mapFragment.getMapAsync(this);
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -107,17 +107,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
         }
         Button optionsButton = findViewById(R.id.optionsButton);
-        optionsButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showOptionsPopup(v);
-            }
-        });
+        optionsButton.setOnClickListener(this::showOptionsPopup);
     }
     // Function for setting up geocoder
 public Address Get_geo_info(String location)
 {
-    List<Address> addressList = null;
+    List<Address> addressList;
     Address address = null;
     if (location != null && !location.isEmpty()) {
         Geocoder geocoder = new Geocoder(MapsActivity.this, Locale.getDefault());
@@ -150,7 +145,7 @@ public Address Get_geo_info(String location)
      * installed Google Play services and returned to the app.
      */
     @Override
-    public void onMapReady(GoogleMap googleMap) {
+    public void onMapReady(@NonNull GoogleMap googleMap) {
         mMap = googleMap;
         setupMap("");
         Intent intent = getIntent();
@@ -262,14 +257,11 @@ public Address Get_geo_info(String location)
     public void showOptionsPopup(View view) {
         PopupMenu popupMenu = new PopupMenu(this, view);
         popupMenu.getMenuInflater().inflate(R.menu.options_menu, popupMenu.getMenu());
-        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
-                // Handle the selected option
-                String selectedOption = item.getTitle().toString();
-                setupMap(selectedOption);
-                return true;
-            }
+        popupMenu.setOnMenuItemClickListener(item -> {
+            // Handle the selected option
+            String selectedOption = Objects.requireNonNull(item.getTitle()).toString();
+            setupMap(selectedOption);
+            return true;
         });
 
         popupMenu.show();
@@ -279,16 +271,8 @@ public Address Get_geo_info(String location)
     public void onBackPressed() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage("Do you want to exit?");
-        builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                finishAffinity();
-            }
-        });
-        builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-            }
+        builder.setPositiveButton("Yes", (dialog, which) -> finishAffinity());
+        builder.setNegativeButton("No", (dialog, which) -> {
         });
         builder.show();
     }
@@ -299,38 +283,25 @@ public Address Get_geo_info(String location)
     }
 //Markers
 private void addMarkers() {
-    int i = 0;
-    Map<String, double[]> hospitalCoordinates = new HashMap<>();
-    mDatabase = FirebaseDatabase.getInstance().getReference();
+    DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
     mDatabase.child("State").child("Karnataka").child("Hospital").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
         @Override
         public void onComplete(@NonNull Task<DataSnapshot> task) {
-            int i=0;
             if (task.isSuccessful()) {
                 DataSnapshot dataSnapshot = task.getResult();
                 if (dataSnapshot != null) {
+                    int i = 0;
                     for (DataSnapshot hospitalSnapshot : dataSnapshot.getChildren()) {
                         String hospitalName = hospitalSnapshot.getKey();
                         double latitude = hospitalSnapshot.child("Lat").getValue(Double.class);
                         double longitude = hospitalSnapshot.child("Lang").getValue(Double.class);
-                        hospitalCoordinates.put(hospitalName, new double[]{latitude, longitude});
-                    }
-                    // Add markers using LatLng for each location
-                    LatLngBounds.Builder builder = new LatLngBounds.Builder();
-                    for (Map.Entry<String, double[]> entry : hospitalCoordinates.entrySet()) {
-                        String hospitalName = entry.getKey();
-                        LatLng location = new LatLng(entry.getValue()[0], entry.getValue()[1]);
+
+                        LatLng location = new LatLng(latitude, longitude);
 
                         if (!markerExists(location)) {
                             addMarker(location, "Hospital " + (++i), hospitalName);
                         }
-                        builder.include(location); // Include the marker's position in the bounding box
                     }
-                    // Move the camera to include all markers in the bounding box
-                    LatLngBounds bounds = builder.build();
-                    int padding = 50; // Padding in pixels
-                    CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, padding);
-                    mMap.moveCamera(cu);
                 }
             }
         }
@@ -348,36 +319,34 @@ private void addMarkers() {
                 .title(title)
                 .snippet(snippet);
         mMap.addMarker(markerOptions);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 12),2000,null);
     }
     public void showLocation(View view) {
         FusedLocationProviderClient fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        fusedLocationProviderClient.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
-            @Override
-            public void onSuccess(Location location) {
-                if (location != null) {
-                    if (mark != null) {
-                        mark.remove();
-                    }
-                    LatLng userLocation = new LatLng(location.getLatitude(), location.getLongitude());
-                    IconGenerator iconGenerator = new IconGenerator(MapsActivity.this); // 'this' refers to the context of the current activity
-                    View markerLayout = LayoutInflater.from(MapsActivity.this).inflate(R.layout.custom_marker_layout, null);
-                    iconGenerator.setContentView(markerLayout);
-// Create a BitmapDescriptor from the custom marker layout
-                    customMarker = BitmapDescriptorFactory.fromBitmap(iconGenerator.makeIcon());
-// Add the custom marker to the mark
-                    MarkerOptions markerOptions = new MarkerOptions()
-                            .position(userLocation)
-                            .title("Your Location")
-                            .icon(customMarker);
-
-                    mark = mMap.addMarker(markerOptions);
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 20), 4000, null);
-                } else {
-                    showLocation(view);
+        fusedLocationProviderClient.getLastLocation().addOnSuccessListener(location -> {
+            if (location != null) {
+                if (mark != null) {
+                    mark.remove();
                 }
+                LatLng userLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                IconGenerator iconGenerator = new IconGenerator(MapsActivity.this); // 'this' refers to the context of the current activity
+                View markerLayout = LayoutInflater.from(MapsActivity.this).inflate(R.layout.custom_marker_layout, null);
+                iconGenerator.setContentView(markerLayout);
+// Create a BitmapDescriptor from the custom marker layout
+                customMarker = BitmapDescriptorFactory.fromBitmap(iconGenerator.makeIcon());
+// Add the custom marker to the mark
+                MarkerOptions markerOptions = new MarkerOptions()
+                        .position(userLocation)
+                        .title("Your Location")
+                        .icon(customMarker);
+
+                mark = mMap.addMarker(markerOptions);
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 20), 4000, null);
+            } else {
+                showLocation(view);
             }
         });
     }
