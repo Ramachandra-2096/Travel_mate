@@ -39,7 +39,12 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.maps.android.ui.IconGenerator;
 
 import java.io.IOException;
@@ -50,6 +55,7 @@ import java.util.Map;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
     private GoogleMap mMap;
+    private DatabaseReference mDatabase;
     private Marker m1,mark;
     BitmapDescriptor customMarker;
     private SearchView Map_Search;
@@ -292,46 +298,45 @@ public Address Get_geo_info(String location)
         addMarkers();
     }
 //Markers
-    private void addMarkers() {
-        int i=0;
-        Map<String, String> hospitalCoordinates = new HashMap<>();
-        hospitalCoordinates.put("Lombard Memorial Hospital Drug Store", "13.327770, 74.751940");
-        hospitalCoordinates.put("Adarsha Hospital", "13.343730, 74.746640");
-        hospitalCoordinates.put("Dr TMA Pai Hospital", "13.334330, 74.748060");
-        hospitalCoordinates.put("Gandhi Hospital", "13.335330, 74.756000");
-        hospitalCoordinates.put("Hitech Medicare Hospital", "13.322520, 74.739650");
-        hospitalCoordinates.put("Karnataka Government Koosamma Shambhu Shetty Memorial Haji Abdullah Mother & Child Hospital(MCH UDUPI)", "13.344780, 74.753260");
-        hospitalCoordinates.put("City Hospital And Nursing College", "13.352223, 74.744180");
-        hospitalCoordinates.put("Dr. A. V. Baliga Memorial Hospital", "13.363841752532997, 74.76180063683583");
-        hospitalCoordinates.put("Mitra Hospital1", "13.324840, 74.768640");
-        hospitalCoordinates.put("District Hospital Udupi", "13.334590, 74.743020");
-        hospitalCoordinates.put("Manipal Hospital2", "13.304878926591606, 74.7358797693113");
-        hospitalCoordinates.put("Government Maternity And Children Hospital", "13.34212907066328, 74.74841104963774");
-        hospitalCoordinates.put("New City Hospital", "13.347386991604832, 74.74414691584089");
-        hospitalCoordinates.put("Manipal Hospital3", "13.361082612408323, 74.78946551866522");
-        hospitalCoordinates.put("Lalith Hospital", "13.346050791877484, 74.74792346607624");
-        hospitalCoordinates.put("Ajjarkadu", "13.33736531348114, 74.74414691584087");
-        hospitalCoordinates.put("SDM Ayurveda Hospital,Kuthpady,Udupi", "13.3193252457573, 74.73281726513478");
-        hospitalCoordinates.put("Dr TMA Pai Hospital Udupi", "13.328679522927885, 74.73968372010818");
-        hospitalCoordinates.put("Sunad Hospital", "13.35339979887379, 74.76337298976635");
-        // Add markers using LatLng for each location
-        LatLngBounds.Builder builder = new LatLngBounds.Builder();
-        for (Map.Entry<String, String> entry : hospitalCoordinates.entrySet()) {
-            String hospitalName = entry.getKey();
-            Address address = Get_geo_info(hospitalName+" Udupi");
-            LatLng location = new LatLng(address.getLatitude(),address.getLongitude());
-            if (!markerExists(location)) {
-                addMarker(location, "Hospital " + (++i), hospitalName);
+private void addMarkers() {
+    int i = 0;
+    Map<String, double[]> hospitalCoordinates = new HashMap<>();
+    mDatabase = FirebaseDatabase.getInstance().getReference();
+    mDatabase.child("State").child("Karnataka").child("Hospital").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
+        @Override
+        public void onComplete(@NonNull Task<DataSnapshot> task) {
+            int i=0;
+            if (task.isSuccessful()) {
+                DataSnapshot dataSnapshot = task.getResult();
+                if (dataSnapshot != null) {
+                    for (DataSnapshot hospitalSnapshot : dataSnapshot.getChildren()) {
+                        String hospitalName = hospitalSnapshot.getKey();
+                        double latitude = hospitalSnapshot.child("Lat").getValue(Double.class);
+                        double longitude = hospitalSnapshot.child("Lang").getValue(Double.class);
+                        hospitalCoordinates.put(hospitalName, new double[]{latitude, longitude});
+                    }
+                    // Add markers using LatLng for each location
+                    LatLngBounds.Builder builder = new LatLngBounds.Builder();
+                    for (Map.Entry<String, double[]> entry : hospitalCoordinates.entrySet()) {
+                        String hospitalName = entry.getKey();
+                        LatLng location = new LatLng(entry.getValue()[0], entry.getValue()[1]);
+
+                        if (!markerExists(location)) {
+                            addMarker(location, "Hospital " + (++i), hospitalName);
+                        }
+                        builder.include(location); // Include the marker's position in the bounding box
+                    }
+                    // Move the camera to include all markers in the bounding box
+                    LatLngBounds bounds = builder.build();
+                    int padding = 50; // Padding in pixels
+                    CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, padding);
+                    mMap.moveCamera(cu);
+                }
             }
-            builder.include(location); // Include the marker's position in the bounding box
         }
-        // Move the camera to include all markers in the bounding box
-        LatLngBounds bounds = builder.build();
-        int padding = 50; // Padding in pixels
-        CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, padding);
-        mMap.moveCamera(cu);
-        // Add more markers as needed
-    }
+    });
+}
+
     private boolean markerExists(LatLng location) {
 
         return false;
