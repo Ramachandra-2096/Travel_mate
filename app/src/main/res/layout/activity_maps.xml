@@ -90,5 +90,18 @@
                 android:foreground="@drawable/baseline_mic_24"
                 map:srcCompat="@drawable/baseline_mic_24" />
         </RelativeLayout>
+
     </LinearLayout>
+
+    <ListView
+        android:id="@+id/listView"
+        android:layout_width="321dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="67dp"
+        android:background="@color/white"
+        android:visibility="invisible"
+        tools:visibility="visible" />
 </RelativeLayout>

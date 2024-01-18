@@ -10,14 +10,18 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.PopupMenu;
 import android.widget.SearchView;
 import android.widget.Toast;
@@ -38,15 +42,20 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.maps.android.SphericalUtil;
 import com.google.maps.android.ui.IconGenerator;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -55,13 +64,18 @@ import java.util.Objects;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
     private GoogleMap mMap;
+    private List<Marker> markerList = new ArrayList<>();
     private Marker m1,mark;
+    static Polyline poly;
     BitmapDescriptor customMarker;
     private SearchView Map_Search;
+    private ListView listView;
+    private ArrayAdapter<String> searchAdapter;
+    private List<String> searchResults;
     private Marker usermarker;
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
-
+    LatLng usr;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,6 +84,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         assert mapFragment != null;
         mapFragment.getMapAsync(this);
+        listView = findViewById(R.id.listView);
+        searchResults = new ArrayList<>();
+        searchAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, searchResults);
+        listView.setAdapter(searchAdapter);
         LocationUtils.checkLocationStatus(this, new LocationUtils.OnLocationEnabledListener() {
             @Override
             public void onLocationEnabled() {
@@ -108,17 +126,39 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     if (m1 != null) {
                         m1.remove();
                     }
+                    mMap.clear();
+                    listView.setVisibility(View.GONE);
+                    SphericalUtil PolyUtil = null;
+                    List<LatLng> polylinePoints = Arrays.asList(usr, latLng);
+                    float distance = (float) PolyUtil.computeLength(polylinePoints);
+                    List<LatLng> waypoints = new ArrayList<>();
+                    waypoints.add(usr);
+                    waypoints.add(latLng);
+                    RoutingTask rtsk = new RoutingTask(mMap, poly);
+                    rtsk.execute(waypoints);
+                    startLocationUpdates();
                     m1 = mMap.addMarker(new MarkerOptions()
                             .position(latLng)
                             .title(address.getFeatureName())
-                            .snippet(address.getAddressLine(0))
+                            .snippet(address.getAddressLine(0)+" Distance: "+String.format("%2f",distance/1000)+"Km")
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)));
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18), 5000, null);
+
                 }
                     return false;
                 }
             @Override
             public boolean onQueryTextChange(String s) {
+                if (s == null || s.trim().isEmpty()) {
+                    listView.setVisibility(View.GONE);
+                } else {
+                    try {
+                        performSearch(s);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    listView.setVisibility(View.VISIBLE);
+                }
                 return false;
             }
         });
@@ -133,6 +173,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         Button optionsButton = findViewById(R.id.optionsButton);
         optionsButton.setOnClickListener(this::showOptionsPopup);
+        listView.setOnItemClickListener((parent, view, position, id) -> {
+            // Handle item click from the search results
+            String selectedResult = searchResults.get(position);
+            listView.setVisibility(View.GONE);
+        });
     }
     // Function for setting up geocoder
 public Address Get_geo_info(String location)
@@ -160,6 +205,32 @@ public Address Get_geo_info(String location)
     }
     return address;
 }
+    private void performSearch(String query) throws IOException {
+        // Dummy data for demonstration
+        searchResults.clear();
+        List<Address>add;
+        if(query.length()>=3) {
+            Geocoder geocoder = new Geocoder(MapsActivity.this, Locale.getDefault());
+            add = geocoder.getFromLocationName(query, 4);
+            if (add != null && !add.isEmpty()) {
+                for (Address a : add) {
+                    if (a != null) {
+                        searchResults.add(a.getAddressLine(0));
+                    }
+                }
+                searchAdapter.notifyDataSetChanged();
+            }
+        }
+        // Update the adapter and show/hide the list view accordingly
+        if (!searchResults.isEmpty()) {
+            listView.setVisibility(View.VISIBLE);
+        } else {
+            searchAdapter.clear();
+            listView.setVisibility(View.GONE);
+            searchResults.clear();
+            searchAdapter.notifyDataSetChanged();
+        }
+    }
     /**
      * Manipulates the map once available.
      * This callback is triggered when the map is ready to be used.
@@ -188,6 +259,9 @@ public Address Get_geo_info(String location)
             customMarker = BitmapDescriptorFactory.fromBitmap(iconGenerator.makeIcon());
 // Add the custom marker to the map
             LatLng userLocation = new LatLng(latitude, longitude);
+            usr=userLocation;
+            mMap.setTrafficEnabled(true);
+            mMap.setBuildingsEnabled(true);
             MarkerOptions markerOptions = new MarkerOptions()
                     .position(userLocation)
                     .title("Your Location")
@@ -253,6 +327,7 @@ public Address Get_geo_info(String location)
         // Remove existing marker and add the updated marker to the map
         if (usermarker != null) {
             usermarker.remove();
+            mark.remove();
             // Clear existing marker
             // Add the updated marker to the map without changing the camera position
             MarkerOptions markerOptions = new MarkerOptions()
@@ -260,7 +335,15 @@ public Address Get_geo_info(String location)
                     .title("Your Location")
                     .icon(customMarker);
             usermarker = mMap.addMarker(markerOptions);
+        }else{
+            mark.remove();
+            MarkerOptions markerOptions = new MarkerOptions()
+                    .position(userLocation)
+                    .title("Your Location")
+                    .icon(customMarker);
+            usermarker = mMap.addMarker(markerOptions);
         }
+
     }
 
     @Override
@@ -296,10 +379,14 @@ public Address Get_geo_info(String location)
     public void onBackPressed() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage("Do you want to exit?");
-        builder.setPositiveButton("Yes", (dialog, which) -> finishAffinity());
+        builder.setPositiveButton("Yes", (dialog, which) -> {
+            onDestroy();
+            finishAffinity();
+        });
         builder.setNegativeButton("No", (dialog, which) -> {
         });
         builder.show();
+
     }
 
     public void showHospitals(View view)
@@ -332,17 +419,26 @@ private void addMarkers() {
 }
 
     private boolean markerExists(LatLng location) {
+        for (Marker marker : markerList) {
+            if (marker.getPosition().equals(location)) {
+                return true;
+            }
+        }
         return false;
     }
+
+
     // Function to add a single marker
     private void addMarker(LatLng location, String title, String snippet) {
         MarkerOptions markerOptions = new MarkerOptions()
                 .position(location)
                 .title(title)
                 .snippet(snippet);
-        mMap.addMarker(markerOptions);
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 12),2000,null);
+        Marker marker = mMap.addMarker(markerOptions);
+        markerList.add(marker);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 12), 2000, null);
     }
+
     public void showLocation(View view) {
         FusedLocationProviderClient fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
