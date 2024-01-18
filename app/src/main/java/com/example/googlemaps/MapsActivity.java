@@ -295,9 +295,7 @@ private void addMarkers() {
                         String hospitalName = hospitalSnapshot.getKey();
                         double latitude = hospitalSnapshot.child("Lat").getValue(Double.class);
                         double longitude = hospitalSnapshot.child("Lang").getValue(Double.class);
-
                         LatLng location = new LatLng(latitude, longitude);
-
                         if (!markerExists(location)) {
                             addMarker(location, "Hospital " + (++i), hospitalName);
                         }
@@ -349,5 +347,9 @@ private void addMarkers() {
                 showLocation(view);
             }
         });
+    }
+    public  void  openmic(View view)
+    {
+        Toast.makeText(this, "Button clicked", Toast.LENGTH_SHORT).show();
     }
 }
