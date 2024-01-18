@@ -75,6 +75,7 @@
         android:layout_marginTop="20dp"
         android:layout_toEndOf="@+id/mapsearch"
         android:layout_weight="1"
+        android:scaleType="fitCenter"
         android:onClick="openmic"
         android:background="@drawable/mic"
         android:foreground="@drawable/baseline_mic_24" />

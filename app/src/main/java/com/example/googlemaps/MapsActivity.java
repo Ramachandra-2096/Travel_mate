@@ -307,7 +307,6 @@ private void addMarkers() {
 }
 
     private boolean markerExists(LatLng location) {
-
         return false;
     }
     // Function to add a single marker
