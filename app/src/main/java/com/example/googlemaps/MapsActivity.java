@@ -10,14 +10,11 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
-import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -149,16 +146,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             @Override
             public boolean onQueryTextChange(String s) {
-                if (s == null || s.trim().isEmpty()) {
-                    listView.setVisibility(View.GONE);
-                } else {
-                    try {
-                        performSearch(s);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    listView.setVisibility(View.VISIBLE);
-                }
+
+             if (s == null || s.trim().isEmpty()) {
+                  listView.setVisibility(View.GONE);
+             } else {
+                    new GeocodeTask().execute(s);
+                   listView.setVisibility(View.VISIBLE);
+               }
                 return false;
             }
         });
@@ -174,9 +168,33 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Button optionsButton = findViewById(R.id.optionsButton);
         optionsButton.setOnClickListener(this::showOptionsPopup);
         listView.setOnItemClickListener((parent, view, position, id) -> {
-            // Handle item click from the search results
             String selectedResult = searchResults.get(position);
-            listView.setVisibility(View.GONE);
+            Address s_add =Get_geo_info(selectedResult);
+            if (s_add != null) {
+                LatLng latLng = new LatLng(s_add.getLatitude(), s_add.getLongitude());
+                if (m1 != null) {
+                    m1.remove();
+                }
+                mMap.clear();
+                listView.setVisibility(View.GONE);
+                SphericalUtil PolyUtil = null;
+                List<LatLng> polylinePoints = Arrays.asList(usr, latLng);
+                float distance = (float) PolyUtil.computeLength(polylinePoints);
+                List<LatLng> waypoints = new ArrayList<>();
+                waypoints.add(usr);
+                waypoints.add(latLng);
+                RoutingTask rtsk = new RoutingTask(mMap, poly);
+                rtsk.execute(waypoints);
+                startLocationUpdates();
+                m1 = mMap.addMarker(new MarkerOptions()
+                        .position(latLng)
+                        .title(s_add.getFeatureName())
+                        .snippet(s_add.getAddressLine(0) + " Distance: " + String.format("%2f", distance / 1000) + "Km")
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18), 5000, null);
+                Toast.makeText(this, selectedResult, Toast.LENGTH_SHORT).show();
+                listView.setVisibility(View.GONE);
+            }
         });
     }
     // Function for setting up geocoder
@@ -205,32 +223,6 @@ public Address Get_geo_info(String location)
     }
     return address;
 }
-    private void performSearch(String query) throws IOException {
-        // Dummy data for demonstration
-        searchResults.clear();
-        List<Address>add;
-        if(query.length()>=3) {
-            Geocoder geocoder = new Geocoder(MapsActivity.this, Locale.getDefault());
-            add = geocoder.getFromLocationName(query, 4);
-            if (add != null && !add.isEmpty()) {
-                for (Address a : add) {
-                    if (a != null) {
-                        searchResults.add(a.getAddressLine(0));
-                    }
-                }
-                searchAdapter.notifyDataSetChanged();
-            }
-        }
-        // Update the adapter and show/hide the list view accordingly
-        if (!searchResults.isEmpty()) {
-            listView.setVisibility(View.VISIBLE);
-        } else {
-            searchAdapter.clear();
-            listView.setVisibility(View.GONE);
-            searchResults.clear();
-            searchAdapter.notifyDataSetChanged();
-        }
-    }
     /**
      * Manipulates the map once available.
      * This callback is triggered when the map is ready to be used.
@@ -471,5 +463,41 @@ private void addMarkers() {
     public  void  openmic(View view)
     {
         Toast.makeText(this, "Button clicked", Toast.LENGTH_SHORT).show();
+    }
+
+
+
+    private class GeocodeTask extends AsyncTask<String, Void, List<String>> {
+
+        @Override
+        protected List<String> doInBackground(String... params) {
+            List<String> resultCities = new ArrayList<>();
+            List<Address>add;
+            String query = params[0];
+            if(query.length()>=3) {
+                Geocoder geocoder = new Geocoder(MapsActivity.this, Locale.getDefault());
+                try {
+                    add = geocoder.getFromLocationName(query, 8);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                if (add != null && !add.isEmpty()) {
+                    for (Address a : add) {
+                        if (a != null) {
+                            resultCities.add(a.getAddressLine(0));
+                        }
+                    }
+                }
+            }
+            return resultCities;
+        }
+
+        @Override
+        protected void onPostExecute(List<String> resultCities) {
+            // Update the list view with the new city names
+            searchResults.clear();
+            searchAdapter.addAll(resultCities);
+            searchAdapter.notifyDataSetChanged();
+        }
     }
 }
