@@ -70,6 +70,32 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         assert mapFragment != null;
         mapFragment.getMapAsync(this);
+        LocationUtils.checkLocationStatus(this, new LocationUtils.OnLocationEnabledListener() {
+            @Override
+            public void onLocationEnabled() {
+
+            }
+            @Override
+            public void onLocationDisabled() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MapsActivity.this);
+                builder.setMessage("Location services are disabled. Please turn on location.")
+                        .setCancelable(false)
+                        .setPositiveButton("Turn On Location", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                            }
+                        })
+                        .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.cancel();
+                            }
+                        });
+                AlertDialog alert = builder.create();
+                alert.show();
+                finish();
+                startActivity(getIntent());
+            }
+        });
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         Map_Search = findViewById(R.id.mapsearch);
