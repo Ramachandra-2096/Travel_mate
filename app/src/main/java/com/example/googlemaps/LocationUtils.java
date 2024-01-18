@@ -19,10 +19,8 @@ public class LocationUtils {
         } else {
             // Location is not enabled, prompt the user to enable it
             listener.onLocationDisabled();
-
             // Open location settings
             context.startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-
             // Check location status continuously
             final Handler handler = new Handler();
             handler.postDelayed(new Runnable() {

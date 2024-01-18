@@ -73,7 +73,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LocationUtils.checkLocationStatus(this, new LocationUtils.OnLocationEnabledListener() {
             @Override
             public void onLocationEnabled() {
-
             }
             @Override
             public void onLocationDisabled() {
