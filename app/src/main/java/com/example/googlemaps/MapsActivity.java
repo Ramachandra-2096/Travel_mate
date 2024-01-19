@@ -64,6 +64,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private List<Marker> markerList = new ArrayList<>();
     private Marker m1,mark;
     static Polyline poly;
+    LatLng userllloc;
     BitmapDescriptor customMarker;
     private SearchView Map_Search;
     private ListView listView;
@@ -251,6 +252,7 @@ public Address Get_geo_info(String location)
             customMarker = BitmapDescriptorFactory.fromBitmap(iconGenerator.makeIcon());
 // Add the custom marker to the map
             LatLng userLocation = new LatLng(latitude, longitude);
+
             usr=userLocation;
             mMap.setTrafficEnabled(true);
             mMap.setBuildingsEnabled(true);
@@ -297,6 +299,7 @@ public Address Get_geo_info(String location)
                 if (locationResult.getLastLocation() != null) {
                     LatLng userLocation = new LatLng(locationResult.getLastLocation().getLatitude(),
                             locationResult.getLastLocation().getLongitude());
+                    userllloc =userLocation;
                     // Update the marker on the map
                     updateMarker(userLocation);
                 }
@@ -381,35 +384,61 @@ public Address Get_geo_info(String location)
 
     }
 
-    public void showHospitals(View view)
-    {
+    public void showHospitals(View view) throws IOException {
         addMarkers();
     }
 //Markers
 private void addMarkers() {
-    DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
-    mDatabase.child("State").child("Karnataka").child("Hospital").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
+    new AsyncTask<Void, Void, List<Address>>() {
+
         @Override
-        public void onComplete(@NonNull Task<DataSnapshot> task) {
-            if (task.isSuccessful()) {
-                DataSnapshot dataSnapshot = task.getResult();
-                if (dataSnapshot != null) {
-                    int i = 0;
-                    for (DataSnapshot hospitalSnapshot : dataSnapshot.getChildren()) {
-                        String hospitalName = hospitalSnapshot.getKey();
-                        double latitude = hospitalSnapshot.child("Lat").getValue(Double.class);
-                        double longitude = hospitalSnapshot.child("Lang").getValue(Double.class);
-                        LatLng location = new LatLng(latitude, longitude);
-                        if (!markerExists(location)) {
-                            addMarker(location, "Hospital " + (++i), hospitalName);
-                        }
-                    }
-                }
+        protected List<Address> doInBackground(Void... voids) {
+            try {
+                Geocoder ge = new Geocoder(MapsActivity.this);
+                return ge.getFromLocation(usr.latitude, usr.longitude, 1);
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
             }
         }
-    });
+
+        @Override
+        protected void onPostExecute(List<Address> addresses) {
+            if (addresses != null && addresses.size() > 0) {
+                String adminArea = addresses.get(0).getAdminArea();
+                DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
+
+                mDatabase.child("Hospital").child(adminArea).get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<DataSnapshot> task) {
+                        if (task.isSuccessful()) {
+                            DataSnapshot dataSnapshot = task.getResult();
+                            if (dataSnapshot != null) {
+                                int i = 0;
+                                for (DataSnapshot hospitalSnapshot : dataSnapshot.getChildren()) {
+                                    System.out.println(hospitalSnapshot);
+                                    String hospitalName = hospitalSnapshot.getKey();
+                                    double latitude = hospitalSnapshot.child("Lat ").getValue(Double.class);
+                                    double longitude = hospitalSnapshot.child("Long ").getValue(Double.class);
+                                    LatLng location = new LatLng(latitude, longitude);
+                                    if (!markerExists(location)) {
+                                        addMarker(location, "Hospital " + (++i), hospitalName);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    }.execute();
 }
 
+
+public void select_hopital()
+    {
+
+    }
     private boolean markerExists(LatLng location) {
         for (Marker marker : markerList) {
             if (marker.getPosition().equals(location)) {
