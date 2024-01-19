@@ -12,6 +12,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
+import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -25,10 +26,10 @@ import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -36,13 +37,10 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
-import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseReference;
@@ -53,10 +51,8 @@ import com.google.maps.android.ui.IconGenerator;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -261,7 +257,7 @@ public Address Get_geo_info(String location)
                     .title("Your Location")
                     .icon(customMarker);
 
-            mark =mMap.addMarker(markerOptions);
+            usermarker =mMap.addMarker(markerOptions);
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 18),4000,null); // Adjust the zoom level as desired
         }else {
             startLocationUpdates();
@@ -299,7 +295,7 @@ public Address Get_geo_info(String location)
                 if (locationResult.getLastLocation() != null) {
                     LatLng userLocation = new LatLng(locationResult.getLastLocation().getLatitude(),
                             locationResult.getLastLocation().getLongitude());
-                    userllloc =userLocation;
+                    usr =userLocation;
                     // Update the marker on the map
                     updateMarker(userLocation);
                 }
@@ -322,7 +318,6 @@ public Address Get_geo_info(String location)
         // Remove existing marker and add the updated marker to the map
         if (usermarker != null) {
             usermarker.remove();
-            mark.remove();
             // Clear existing marker
             // Add the updated marker to the map without changing the camera position
             MarkerOptions markerOptions = new MarkerOptions()
@@ -331,7 +326,6 @@ public Address Get_geo_info(String location)
                     .icon(customMarker);
             usermarker = mMap.addMarker(markerOptions);
         }else{
-            mark.remove();
             MarkerOptions markerOptions = new MarkerOptions()
                     .position(userLocation)
                     .title("Your Location")
@@ -395,6 +389,24 @@ private void addMarkers() {
         protected List<Address> doInBackground(Void... voids) {
             try {
                 Geocoder ge = new Geocoder(MapsActivity.this);
+                final List<Address>[] a = new List[]{null};
+                if(usr==null)
+                {
+                    LocationListener locationListener = new LocationListener() {
+                        @Override
+                        public void onLocationChanged(Location location) {
+                            // Handle location updates here
+                            double latitude = location.getLatitude();
+                            double longitude = location.getLongitude();
+                            try {
+                                a[0] = ge.getFromLocation(latitude, longitude, 1);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    };
+                    return a[0];
+                }
                 return ge.getFromLocation(usr.latitude, usr.longitude, 1);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -416,7 +428,6 @@ private void addMarkers() {
                             if (dataSnapshot != null) {
                                 int i = 0;
                                 for (DataSnapshot hospitalSnapshot : dataSnapshot.getChildren()) {
-                                    System.out.println(hospitalSnapshot);
                                     String hospitalName = hospitalSnapshot.getKey();
                                     double latitude = hospitalSnapshot.child("Lat ").getValue(Double.class);
                                     double longitude = hospitalSnapshot.child("Long ").getValue(Double.class);
@@ -434,11 +445,6 @@ private void addMarkers() {
     }.execute();
 }
 
-
-public void select_hopital()
-    {
-
-    }
     private boolean markerExists(LatLng location) {
         for (Marker marker : markerList) {
             if (marker.getPosition().equals(location)) {
@@ -467,10 +473,11 @@ public void select_hopital()
         }
         fusedLocationProviderClient.getLastLocation().addOnSuccessListener(location -> {
             if (location != null) {
-                if (mark != null) {
-                    mark.remove();
+                if (usermarker != null) {
+                    usermarker.remove();
                 }
                 LatLng userLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                usr=userLocation;
                 IconGenerator iconGenerator = new IconGenerator(MapsActivity.this); // 'this' refers to the context of the current activity
                 View markerLayout = LayoutInflater.from(MapsActivity.this).inflate(R.layout.custom_marker_layout, null);
                 iconGenerator.setContentView(markerLayout);
@@ -481,8 +488,7 @@ public void select_hopital()
                         .position(userLocation)
                         .title("Your Location")
                         .icon(customMarker);
-
-                mark = mMap.addMarker(markerOptions);
+                usermarker = mMap.addMarker(markerOptions);
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 20), 4000, null);
             } else {
                 showLocation(view);
@@ -493,9 +499,6 @@ public void select_hopital()
     {
         Toast.makeText(this, "Button clicked", Toast.LENGTH_SHORT).show();
     }
-
-
-
     private class GeocodeTask extends AsyncTask<String, Void, List<String>> {
 
         @Override
