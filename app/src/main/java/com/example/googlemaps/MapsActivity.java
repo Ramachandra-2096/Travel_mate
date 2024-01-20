@@ -6,6 +6,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -58,9 +59,8 @@ import java.util.Objects;
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
     private GoogleMap mMap;
     private List<Marker> markerList = new ArrayList<>();
-    private Marker m1,mark;
+    private Marker m1;
     static Polyline poly;
-    LatLng userllloc;
     BitmapDescriptor customMarker;
     private SearchView Map_Search;
     private ListView listView;
@@ -258,6 +258,18 @@ public Address Get_geo_info(String location)
                     .icon(customMarker);
 
             usermarker =mMap.addMarker(markerOptions);
+            mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+                @Override
+                public boolean onMarkerClick(Marker marker) {
+                    List<LatLng> waypoints = new ArrayList<>();
+                    waypoints.add(usr);
+                    waypoints.add(new LatLng(marker.getPosition().latitude,marker.getPosition().longitude));
+                    RoutingTask rtsk = new RoutingTask(mMap, poly);
+                    rtsk.execute(waypoints);
+                    startLocationUpdates();
+                    return true;
+                }
+            });
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 18),4000,null); // Adjust the zoom level as desired
         }else {
             startLocationUpdates();
@@ -378,13 +390,14 @@ public Address Get_geo_info(String location)
 
     }
 
-    public void showHospitals(View view) throws IOException {
+    public void showHospitals(View view) {
         addMarkers();
     }
 //Markers
 private void addMarkers() {
     new AsyncTask<Void, Void, List<Address>>() {
 
+        @SuppressLint("StaticFieldLeak")
         @Override
         protected List<Address> doInBackground(Void... voids) {
             try {
@@ -433,7 +446,16 @@ private void addMarkers() {
                                     double longitude = hospitalSnapshot.child("Long ").getValue(Double.class);
                                     LatLng location = new LatLng(latitude, longitude);
                                     if (!markerExists(location)) {
-                                        addMarker(location, "Hospital " + (++i), hospitalName);
+                                        double distance = LocationUtils_calculate.calculateDistance(new LatLng(usr.latitude,usr.longitude), location);
+                                        if (distance <= 50) {
+                                            addMarker(location, "Hospital " + (++i), hospitalName);
+                                        }
+                                        if(i<4)
+                                        {
+                                            if (distance <= 100) {
+                                                addMarker(location, "Hospital " + (++i), hospitalName);
+                                            }
+                                        }
                                     }
                                 }
                             }
