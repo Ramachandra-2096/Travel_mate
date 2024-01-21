@@ -11,46 +11,61 @@
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clickable="true"
+        android:enabled="true"
         tools:context=".MapsActivity" />
 
     <Button
         android:id="@+id/optionsButton1"
-        android:layout_width="48dp"
-        android:layout_height="wrap_content"
+        android:layout_width="58dp"
+        android:layout_height="60dp"
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
         android:layout_marginEnd="15dp"
         android:layout_marginBottom="57dp"
         android:background="@drawable/round_button"
         android:elevation="4dp"
-        android:text=""
         android:foreground="@android:drawable/ic_menu_mylocation"
-        android:onClick="showLocation" />
+        android:onClick="showLocation"
+        android:text="" />
 
     <Button
         android:id="@+id/optionsButton"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
+        android:layout_width="62dp"
+        android:layout_height="59dp"
         android:layout_above="@+id/optionsButton1"
         android:layout_alignParentEnd="true"
         android:layout_marginEnd="15dp"
         android:layout_marginBottom="13dp"
-        android:text=""
+        android:background="@drawable/round_button"
         android:foreground="@android:drawable/ic_menu_mapmode"
-        android:background="@drawable/round_button" />
+        android:text="" />
 
     <Button
         android:id="@+id/button2"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
+        android:layout_width="63dp"
+        android:layout_height="66dp"
         android:layout_above="@+id/optionsButton"
         android:layout_alignParentEnd="true"
         android:layout_marginEnd="15dp"
         android:layout_marginBottom="12dp"
-        android:text=""
-        android:foreground="@drawable/baseline_local_hospital_24"
         android:background="@drawable/round_button"
-        android:onClick="showHospitals"/>
+        android:foreground="@drawable/baseline_local_hospital_24"
+        android:onClick="showHospitals"
+        android:text="" />
+
+    <Button
+        android:id="@+id/button"
+        android:layout_width="63dp"
+        android:layout_height="66dp"
+        android:layout_above="@+id/button2"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="15dp"
+        android:layout_marginBottom="12dp"
+        android:foreground="@drawable/tour"
+        android:background="@drawable/round_button"
+        android:onClick="get_loc_tour"
+        android:gravity="center"/>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -85,23 +100,75 @@
                 android:layout_toEndOf="@+id/mapsearch"
                 android:layout_weight="1"
                 android:background="@drawable/mic"
+                android:foreground="@drawable/baseline_mic_24"
                 android:onClick="openmic"
                 android:scaleType="fitCenter"
-                android:foreground="@drawable/baseline_mic_24"
                 map:srcCompat="@drawable/baseline_mic_24" />
+
+            <ListView
+                android:id="@+id/listView"
+                android:layout_width="357dp"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/mapsearch"
+                android:layout_alignParentStart="true"
+                android:layout_marginStart="10dp"
+                android:layout_marginTop="0dp"
+                android:background="@color/white"
+                android:visibility="gone"
+                tools:visibility="gone">
+
+            </ListView>
         </RelativeLayout>
 
     </LinearLayout>
 
-    <ListView
-        android:id="@+id/listView"
-        android:layout_width="321dp"
+
+    <ScrollView
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:layout_marginStart="10dp"
-        android:layout_marginTop="67dp"
-        android:background="@color/white"
-        android:visibility="invisible"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="0dp"
+        android:layout_marginBottom="-2dp">
+
+        <TextView
+            android:id="@+id/textView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginStart="0dp"
+            android:layout_marginBottom="-1dp"
+            android:background="@drawable/flashy_background"
+            android:fontFamily="sans-serif-condensed"
+            android:gravity="left"
+            android:paddingStart="4dp"
+            android:text="TextView"
+            android:textColor="@color/white"
+            android:textSize="19dp"
+            android:textStyle="bold"
+            android:paddingBottom="70dp"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </ScrollView>
+
+    <Button
+        android:id="@+id/button3"
+        android:layout_width="164dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="0dp"
+        android:layout_marginTop="0dp"
+        android:layout_marginEnd="5dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/button"
+        android:fontFamily="sans-serif-condensed"
+        android:onClick="showHospitals"
+        android:text="Start Journey"
+        android:textColor="@color/white"
+        android:visibility="gone"
         tools:visibility="visible" />
+
+
 </RelativeLayout>

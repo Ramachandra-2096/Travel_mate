@@ -38,12 +38,11 @@ public class MainActivity extends AppCompatActivity {
         ImageView imageView_b = findViewById(R.id.imageView1);
 
         // Create a bounce animation
-        ObjectAnimator bounceAnimation = ObjectAnimator.ofFloat(imageView_b, "translationY", 10f, -150f, 0f);
+        ObjectAnimator bounceAnimation = ObjectAnimator.ofFloat(imageView_b, "translationY", 0f, -70f, 0f);
         bounceAnimation.setInterpolator(new BounceInterpolator());
-        bounceAnimation.setRepeatCount(ObjectAnimator.INFINITE); // Set to repeat indefinitely
-        bounceAnimation.setDuration(3000); // Set the duration of the animation in milliseconds
+        bounceAnimation.setDuration(2000); // Set the duration of the animation in milliseconds
         // Start the bounce animation when the activity is created
-        bounceAnimation.start();
+
         // Create a fade-in animation for the TextView
         ObjectAnimator logoFadeIn = ObjectAnimator.ofFloat(imageView, "alpha", 0f, 1f);
         logoFadeIn.setDuration(2000); // Set the duration of the animation in milliseconds
@@ -52,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
         animatorSet.playTogether(bounceAnimation, logoFadeIn); // Play both animations together
         // Start the AnimatorSet when the activity is created
         Intent intent=new Intent(MainActivity.this, MapsActivity.class);
-        countDownTimer= new CountDownTimer(3000,1000) {
+        countDownTimer= new CountDownTimer(2000,500) {
             @Override
             public void onTick(long millisUntilFinished) {
             }

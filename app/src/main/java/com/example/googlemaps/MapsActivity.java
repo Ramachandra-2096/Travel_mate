@@ -8,6 +8,7 @@ import androidx.fragment.app.FragmentActivity;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -16,13 +17,16 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.PopupMenu;
+import android.widget.ScrollView;
 import android.widget.SearchView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -55,13 +59,17 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
     private GoogleMap mMap;
+    private Marker selected_marker;
     private List<Marker> markerList = new ArrayList<>();
     private Marker m1;
     static Polyline poly;
     BitmapDescriptor customMarker;
+    private ProgressDialog PD;
     private SearchView Map_Search;
     private ListView listView;
     private ArrayAdapter<String> searchAdapter;
@@ -74,10 +82,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         assert mapFragment != null;
         mapFragment.getMapAsync(this);
+        PD=new ProgressDialog(MapsActivity.this);
         listView = findViewById(R.id.listView);
         searchResults = new ArrayList<>();
         searchAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, searchResults);
@@ -125,37 +133,29 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     SphericalUtil PolyUtil = null;
                     List<LatLng> polylinePoints = Arrays.asList(usr, latLng);
                     float distance = (float) PolyUtil.computeLength(polylinePoints);
-                    List<LatLng> waypoints = new ArrayList<>();
-                    waypoints.add(usr);
-                    waypoints.add(latLng);
-                    RoutingTask rtsk = new RoutingTask(mMap, poly);
-                    rtsk.execute(waypoints);
-                    startLocationUpdates();
                     m1 = mMap.addMarker(new MarkerOptions()
                             .position(latLng)
                             .title(address.getFeatureName())
-                            .snippet(address.getAddressLine(0)+" Distance: "+String.format("%2f",distance/1000)+"Km")
+                            .snippet(address.getAddressLine(0)+"\nDistance: "+String.format("%2f",distance/1000)+"Km from Your Location")
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)));
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18), 5000, null);
-
                 }
                     return false;
-                }
+            }
             @Override
             public boolean onQueryTextChange(String s) {
 
-             if (s == null || s.trim().isEmpty()) {
-                  listView.setVisibility(View.GONE);
-             } else {
-                    new GeocodeTask().execute(s);
-                   listView.setVisibility(View.VISIBLE);
-               }
+                 if (s == null || s.trim().isEmpty()) {
+                      listView.setVisibility(View.GONE);
+                 } else {
+                        new GeocodeTask().execute(s);
+                       listView.setVisibility(View.VISIBLE);
+                   }
                 return false;
             }
         });
         // Check for runtime location permissions
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             startLocationUpdates();
         } else {
             // Request location permissions if not granted
@@ -171,25 +171,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 LatLng latLng = new LatLng(s_add.getLatitude(), s_add.getLongitude());
                 if (m1 != null) {
                     m1.remove();
-                }
-                mMap.clear();
+                }mMap.clear();
                 listView.setVisibility(View.GONE);
                 SphericalUtil PolyUtil = null;
                 List<LatLng> polylinePoints = Arrays.asList(usr, latLng);
                 float distance = (float) PolyUtil.computeLength(polylinePoints);
-                List<LatLng> waypoints = new ArrayList<>();
-                waypoints.add(usr);
-                waypoints.add(latLng);
-                RoutingTask rtsk = new RoutingTask(mMap, poly);
-                rtsk.execute(waypoints);
-                startLocationUpdates();
                 m1 = mMap.addMarker(new MarkerOptions()
                         .position(latLng)
                         .title(s_add.getFeatureName())
-                        .snippet(s_add.getAddressLine(0) + " Distance: " + String.format("%2f", distance / 1000) + "Km")
+                        .snippet(s_add.getAddressLine(0) + "\nDistance: " + String.format("%2f", distance / 1000) + "Km from Your Location")
                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)));
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18), 5000, null);
-                Toast.makeText(this, selectedResult, Toast.LENGTH_SHORT).show();
                 listView.setVisibility(View.GONE);
             }
         });
@@ -202,13 +194,13 @@ public Address Get_geo_info(String location)
     if (location != null && !location.isEmpty()) {
         Geocoder geocoder = new Geocoder(MapsActivity.this, Locale.getDefault());
         try {
-            addressList = geocoder.getFromLocationName(location, 1);
-            if (addressList != null && !addressList.isEmpty()) {
-                address = addressList.get(0);
-            }else {
-            // No address found
-            Toast.makeText(MapsActivity.this, "No address found for the given location", Toast.LENGTH_SHORT).show();
-        }
+                addressList = geocoder.getFromLocationName(location, 1);
+                if (addressList != null && !addressList.isEmpty()) {
+                    address = addressList.get(0);
+                }else {
+                // No address found
+                    Toast.makeText(MapsActivity.this, "No address found for the given location", Toast.LENGTH_SHORT).show();
+                }
         } catch (IOException e) {
             // Handle geocoding exceptions
             Toast.makeText(MapsActivity.this, "Geocoding error: Check spelling and try again", Toast.LENGTH_SHORT).show();
@@ -258,15 +250,71 @@ public Address Get_geo_info(String location)
                     .icon(customMarker);
 
             usermarker =mMap.addMarker(markerOptions);
+            mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+                @Override
+                public void onMapClick(LatLng latLng) {
+                    // Hide the views when the map is clicked
+                    TextView t = findViewById(R.id.textView);
+                    Button b = findViewById(R.id.button3);
+                    Button b1 =findViewById(R.id.optionsButton);
+                    Button b2 =findViewById(R.id.optionsButton1);
+                    Button b3 =findViewById(R.id.button2);
+                    t.setVisibility(View.GONE);
+                    b.setVisibility(View.GONE);
+                    b1.setVisibility(View.VISIBLE);
+                    b2.setVisibility(View.VISIBLE);
+                    b3.setVisibility(View.VISIBLE);
+                    if(selected_marker !=null)
+                    {
+                        selected_marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE));
+                    }
+                }
+            });
             mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
                 @Override
                 public boolean onMarkerClick(Marker marker) {
-                    List<LatLng> waypoints = new ArrayList<>();
-                    waypoints.add(usr);
-                    waypoints.add(new LatLng(marker.getPosition().latitude,marker.getPosition().longitude));
-                    RoutingTask rtsk = new RoutingTask(mMap, poly);
-                    rtsk.execute(waypoints);
-                    startLocationUpdates();
+                    if(!marker.getTitle().toString().equals("Your Location")) {
+                        Button b = findViewById(R.id.button3);
+                        TextView t = findViewById(R.id.textView);
+                        Button b1 =findViewById(R.id.optionsButton);
+                        Button b2 =findViewById(R.id.optionsButton1);
+                        Button b3 =findViewById(R.id.button2);
+                        b1.setVisibility(View.GONE);
+                        b2.setVisibility(View.GONE);
+                        b3.setVisibility(View.GONE);
+                        selected_marker =marker;
+                        marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
+                        t.setVisibility(View.VISIBLE);
+                        b.setVisibility(View.VISIBLE);
+
+                        t.setText(marker.getSnippet().toString());
+                        b.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                mMap.clear();
+                                PD.setMessage("Selecting Best Rout For you, please wait...");
+                                PD.show();
+                                List<LatLng> waypoints = new ArrayList<>();
+                                waypoints.add(usr);
+                                waypoints.add(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude));
+                                RoutingTask rtsk = new RoutingTask(mMap, poly);
+                                rtsk.execute(waypoints);
+                                MarkerOptions markerOptions = new MarkerOptions()
+                                        .position(marker.getPosition())
+                                        .title(marker.getSnippet().toString())
+                                        .snippet(marker.getSnippet().toString())
+                                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE));
+                                mMap.addMarker(markerOptions);
+                                startLocationUpdates();
+                                t.setVisibility(View.GONE);
+                                b.setVisibility(View.GONE);
+                                PD.dismiss();
+                                b1.setVisibility(View.VISIBLE);
+                                b2.setVisibility(View.VISIBLE);
+                                b3.setVisibility(View.VISIBLE);
+                            }
+                        });
+                    }
                     return true;
                 }
             });
@@ -552,6 +600,78 @@ private void addMarkers() {
             searchResults.clear();
             searchAdapter.addAll(resultCities);
             searchAdapter.notifyDataSetChanged();
+        }
+    }
+    public void get_loc_tour(View view) {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.execute(new Runnable() {
+            @Override
+            public void run() {
+                Geocoder geo = new Geocoder(MapsActivity.this);
+                try {
+                    List<Address> addresses = geo.getFromLocation(usr.latitude, usr.longitude, 1);
+                    // Use addresses if needed
+
+                    DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
+                    mDatabase.child("Tour").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
+                        @Override
+                        public void onComplete(@NonNull Task<DataSnapshot> task) {
+                            if (task.isSuccessful()) {
+                                DataSnapshot dataSnapshot = task.getResult();
+                                if (dataSnapshot != null) {
+                                    for (DataSnapshot tourSnapshot : dataSnapshot.getChildren()) {
+                                        String placeName = tourSnapshot.getKey();
+                                        double latitude = tourSnapshot.child("Lat").getValue(Double.class);
+                                        double longitude = tourSnapshot.child("Long").getValue(Double.class);
+                                        LatLng location = new LatLng(latitude, longitude);
+
+                                        if (!markerExists(location)) {
+                                            double distance = LocationUtils_calculate.calculateDistance(new LatLng(usr.latitude, usr.longitude), location);
+                                            if (distance <= 50) {
+                                                updateMapForTour(tourSnapshot);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
+
+    private void updateMapForTour(DataSnapshot tourSnapshot) {
+        for (DataSnapshot place : tourSnapshot.getChildren()) {
+            if (place != null && !(place.getKey().equals("Lat") || place.getKey().equals("Long"))) {
+                double place_lat = place.child("Lat ").getValue(Double.class);
+                double place_long = place.child("Long ").getValue(Double.class);
+                LatLng lov = new LatLng(place_lat, place_long);
+
+                double place_distance = LocationUtils_calculate.calculateDistance(new LatLng(usr.latitude, usr.longitude), lov);
+                int markerColor = getMarkerColor(place_distance);
+
+                MarkerOptions markerOptions = new MarkerOptions()
+                        .position(lov)
+                        .title(place.getKey())
+                        .snippet(place.child("Description").getValue().toString())
+                        .icon(BitmapDescriptorFactory.defaultMarker(markerColor));
+
+                Marker marker = mMap.addMarker(markerOptions);
+                markerList.add(marker);
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(lov, 12), 2000, null);
+            }
+        }
+    }
+    private int getMarkerColor(double place_distance) {
+        if (place_distance <= 20) {
+            return (int) BitmapDescriptorFactory.HUE_GREEN;
+        } else if (place_distance <= 40) {
+            return (int) BitmapDescriptorFactory.HUE_ORANGE;
+        } else {
+            return (int) BitmapDescriptorFactory.HUE_ROSE;
         }
     }
 }

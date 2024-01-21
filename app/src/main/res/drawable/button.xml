@@ -1,0 +1,11 @@
+<!-- res/drawable/map_theme_button_background.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:startColor="#66B2FF"
+    android:endColor="#004080"
+    android:centerColor="#3385FF"
+    android:type="linear"
+    android:angle="69" />
+
+    <corners android:radius="80dp" />
+</shape>
