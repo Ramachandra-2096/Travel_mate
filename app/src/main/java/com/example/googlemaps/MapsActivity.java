@@ -17,6 +17,10 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.RelativeSizeSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -78,6 +82,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
     LatLng usr;
+    boolean location_added=false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -247,7 +252,7 @@ public Address Get_geo_info(String location)
             MarkerOptions markerOptions = new MarkerOptions()
                     .position(userLocation)
                     .title("Your Location")
-                    .icon(customMarker);
+                    .icon(customMarker).anchor(0.5f, 1.0f);
 
             usermarker =mMap.addMarker(markerOptions);
             mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
@@ -259,11 +264,13 @@ public Address Get_geo_info(String location)
                     Button b1 =findViewById(R.id.optionsButton);
                     Button b2 =findViewById(R.id.optionsButton1);
                     Button b3 =findViewById(R.id.button2);
+                    Button b4 =findViewById(R.id.button);
                     t.setVisibility(View.GONE);
                     b.setVisibility(View.GONE);
                     b1.setVisibility(View.VISIBLE);
                     b2.setVisibility(View.VISIBLE);
                     b3.setVisibility(View.VISIBLE);
+                    b4.setVisibility(View.VISIBLE);
                     if(selected_marker !=null)
                     {
                         selected_marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE));
@@ -279,15 +286,20 @@ public Address Get_geo_info(String location)
                         Button b1 =findViewById(R.id.optionsButton);
                         Button b2 =findViewById(R.id.optionsButton1);
                         Button b3 =findViewById(R.id.button2);
+                        Button b4 =findViewById(R.id.button);
                         b1.setVisibility(View.GONE);
                         b2.setVisibility(View.GONE);
                         b3.setVisibility(View.GONE);
+                        b4.setVisibility(View.GONE);
                         selected_marker =marker;
                         marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
                         t.setVisibility(View.VISIBLE);
                         b.setVisibility(View.VISIBLE);
+                        SpannableString content = new SpannableString(marker.getTitle()+"\n"+marker.getSnippet());
+                        content.setSpan(new RelativeSizeSpan(1.5f),0,marker.getTitle().toString().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        content.setSpan(new RelativeSizeSpan(0.8f),marker.getTitle().toString().length(),marker.getSnippet().toString().length(), Spannable.SPAN_EXCLUSIVE_INCLUSIVE);
 
-                        t.setText(marker.getSnippet().toString());
+                        t.setText(content);
                         b.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
@@ -312,6 +324,7 @@ public Address Get_geo_info(String location)
                                 b1.setVisibility(View.VISIBLE);
                                 b2.setVisibility(View.VISIBLE);
                                 b3.setVisibility(View.VISIBLE);
+                                b4.setVisibility(View.VISIBLE);
                             }
                         });
                     }
@@ -627,10 +640,15 @@ private void addMarkers() {
 
                                         if (!markerExists(location)) {
                                             double distance = LocationUtils_calculate.calculateDistance(new LatLng(usr.latitude, usr.longitude), location);
-                                            if (distance <= 50) {
+                                            if (distance <= 100) {
                                                 updateMapForTour(tourSnapshot);
+                                                location_added =true;
                                             }
                                         }
+                                    }
+                                    if(!location_added)
+                                    {
+                                        Toast.makeText(MapsActivity.this, "Data not found for your location", Toast.LENGTH_SHORT).show();
                                     }
                                 }
                             }
