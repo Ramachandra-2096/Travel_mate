@@ -19,16 +19,13 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Spannable;
 import android.text.SpannableString;
-import android.text.Spanned;
 import android.text.style.RelativeSizeSpan;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.PopupMenu;
-import android.widget.ScrollView;
 import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -76,13 +73,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private ProgressDialog PD;
     private SearchView Map_Search;
     private ListView listView;
+    public boolean is_map_searched = false;
     private ArrayAdapter<String> searchAdapter;
     private List<String> searchResults;
     private Marker usermarker;
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
     LatLng usr;
-    boolean location_added=false;
+    boolean location_added = false;
+    private ProgressDialog progressDialog;
+    static public boolean isJourney_Started = false;
+
+    @SuppressLint("DefaultLocale")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -90,15 +92,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         assert mapFragment != null;
         mapFragment.getMapAsync(this);
-        PD=new ProgressDialog(MapsActivity.this);
+        PD = new ProgressDialog(MapsActivity.this);
         listView = findViewById(R.id.listView);
         searchResults = new ArrayList<>();
         searchAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, searchResults);
         listView.setAdapter(searchAdapter);
+        progressDialog = new ProgressDialog(MapsActivity.this);
         LocationUtils.checkLocationStatus(this, new LocationUtils.OnLocationEnabledListener() {
             @Override
             public void onLocationEnabled() {
             }
+
             @Override
             public void onLocationDisabled() {
                 AlertDialog.Builder builder = new AlertDialog.Builder(MapsActivity.this);
@@ -126,6 +130,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Map_Search.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String s) {
+                is_map_searched = true;
                 String location = Map_Search.getQuery().toString();
                 Address address = Get_geo_info(location);
                 if (address != null) {
@@ -141,21 +146,35 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     m1 = mMap.addMarker(new MarkerOptions()
                             .position(latLng)
                             .title(address.getFeatureName())
-                            .snippet(address.getAddressLine(0)+"\nDistance: "+String.format("%2f",distance/1000)+"Km from Your Location")
+                            .snippet(address.getAddressLine(0) + "\nDistance: " + String.format("%2f", distance / 1000) + "Km from Your Location")
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)));
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18), 5000, null);
+                    Button b4 = findViewById(R.id.button4);
+                    b4.setVisibility(View.VISIBLE);
+                    b4.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            b4.setVisibility(View.GONE);
+                            progressDialog.setMessage("Updating Map...");
+                            progressDialog.setCancelable(false);
+                            progressDialog.show();
+                            get_loc_tour_for_search(latLng);
+                        }
+                    });
                 }
-                    return false;
+                return false;
             }
+
             @Override
             public boolean onQueryTextChange(String s) {
 
-                 if (s == null || s.trim().isEmpty()) {
-                      listView.setVisibility(View.GONE);
-                 } else {
-                        new GeocodeTask().execute(s);
-                       listView.setVisibility(View.VISIBLE);
-                   }
+                if (s == null || s.trim().isEmpty()) {
+
+                    listView.setVisibility(View.GONE);
+                } else {
+                    new GeocodeTask().execute(s);
+                    listView.setVisibility(View.VISIBLE);
+                }
                 return false;
             }
         });
@@ -171,15 +190,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         optionsButton.setOnClickListener(this::showOptionsPopup);
         listView.setOnItemClickListener((parent, view, position, id) -> {
             String selectedResult = searchResults.get(position);
-            Address s_add =Get_geo_info(selectedResult);
+            Address s_add = Get_geo_info(selectedResult);
             if (s_add != null) {
                 LatLng latLng = new LatLng(s_add.getLatitude(), s_add.getLongitude());
                 if (m1 != null) {
                     m1.remove();
-                }mMap.clear();
+                }
+                mMap.clear();
                 listView.setVisibility(View.GONE);
                 SphericalUtil PolyUtil = null;
                 List<LatLng> polylinePoints = Arrays.asList(usr, latLng);
+                is_map_searched = true;
                 float distance = (float) PolyUtil.computeLength(polylinePoints);
                 m1 = mMap.addMarker(new MarkerOptions()
                         .position(latLng)
@@ -187,36 +208,50 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         .snippet(s_add.getAddressLine(0) + "\nDistance: " + String.format("%2f", distance / 1000) + "Km from Your Location")
                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)));
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18), 5000, null);
+                Button b4 = findViewById(R.id.button4);
+                b4.setVisibility(View.VISIBLE);
+                b4.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        b4.setVisibility(View.GONE);
+                        progressDialog.setMessage("Updating Map...");
+                        progressDialog.setCancelable(false);
+                        progressDialog.show();
+                        get_loc_tour_for_search(latLng);
+                    }
+                });
+
                 listView.setVisibility(View.GONE);
             }
         });
     }
+
     // Function for setting up geocoder
-public Address Get_geo_info(String location)
-{
-    List<Address> addressList;
-    Address address = null;
-    if (location != null && !location.isEmpty()) {
-        Geocoder geocoder = new Geocoder(MapsActivity.this, Locale.getDefault());
-        try {
+    public Address Get_geo_info(String location) {
+        List<Address> addressList;
+        Address address = null;
+        if (location != null && !location.isEmpty()) {
+            Geocoder geocoder = new Geocoder(MapsActivity.this, Locale.getDefault());
+            try {
                 addressList = geocoder.getFromLocationName(location, 1);
                 if (addressList != null && !addressList.isEmpty()) {
                     address = addressList.get(0);
-                }else {
-                // No address found
+                } else {
+                    // No address found
                     Toast.makeText(MapsActivity.this, "No address found for the given location", Toast.LENGTH_SHORT).show();
                 }
-        } catch (IOException e) {
-            // Handle geocoding exceptions
-            Toast.makeText(MapsActivity.this, "Geocoding error: Check spelling and try again", Toast.LENGTH_SHORT).show();
-            e.printStackTrace(); // Log the exception for further debugging if needed
+            } catch (IOException e) {
+                // Handle geocoding exceptions
+                Toast.makeText(MapsActivity.this, "Geocoding error: Check spelling and try again", Toast.LENGTH_SHORT).show();
+                e.printStackTrace(); // Log the exception for further debugging if needed
+            }
+        } else {
+            // Empty or null location
+            Toast.makeText(MapsActivity.this, "Please enter a valid location", Toast.LENGTH_SHORT).show();
         }
-    } else {
-        // Empty or null location
-        Toast.makeText(MapsActivity.this, "Please enter a valid location", Toast.LENGTH_SHORT).show();
+        return address;
     }
-    return address;
-}
+
     /**
      * Manipulates the map once available.
      * This callback is triggered when the map is ready to be used.
@@ -228,116 +263,133 @@ public Address Get_geo_info(String location)
      */
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
+
         mMap = googleMap;
-        setupMap("");
-        Intent intent = getIntent();
-        String lat = intent.getStringExtra("latitude");
-        String lng = intent.getStringExtra("longitude");
-
-        if (lat != null && lng != null && !lat.isEmpty() && !lng.isEmpty()) {
-            double latitude = Double.parseDouble(lat);
-            double longitude = Double.parseDouble(lng);
-            // Get the custom marker layout as a Bitmap
-            IconGenerator iconGenerator = new IconGenerator(this); // 'this' refers to the context of the current activity
-            View markerLayout = LayoutInflater.from(this).inflate(R.layout.custom_marker_layout, null);
-            iconGenerator.setContentView(markerLayout);
-// Create a BitmapDescriptor from the custom marker layout
-            customMarker = BitmapDescriptorFactory.fromBitmap(iconGenerator.makeIcon());
-// Add the custom marker to the map
-            LatLng userLocation = new LatLng(latitude, longitude);
-
-            usr=userLocation;
-            mMap.setTrafficEnabled(true);
-            mMap.setBuildingsEnabled(true);
-            MarkerOptions markerOptions = new MarkerOptions()
-                    .position(userLocation)
-                    .title("Your Location")
-                    .icon(customMarker).anchor(0.5f, 1.0f);
-
-            usermarker =mMap.addMarker(markerOptions);
-            mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
-                @Override
-                public void onMapClick(LatLng latLng) {
-                    // Hide the views when the map is clicked
-                    TextView t = findViewById(R.id.textView);
-                    Button b = findViewById(R.id.button3);
-                    Button b1 =findViewById(R.id.optionsButton);
-                    Button b2 =findViewById(R.id.optionsButton1);
-                    Button b3 =findViewById(R.id.button2);
-                    Button b4 =findViewById(R.id.button);
-                    t.setVisibility(View.GONE);
-                    b.setVisibility(View.GONE);
-                    b1.setVisibility(View.VISIBLE);
-                    b2.setVisibility(View.VISIBLE);
-                    b3.setVisibility(View.VISIBLE);
-                    b4.setVisibility(View.VISIBLE);
-                    if(selected_marker !=null)
-                    {
-                        selected_marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE));
-                    }
-                }
-            });
-            mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-                @Override
-                public boolean onMarkerClick(Marker marker) {
-                    if(!marker.getTitle().toString().equals("Your Location")) {
-                        Button b = findViewById(R.id.button3);
-                        TextView t = findViewById(R.id.textView);
-                        Button b1 =findViewById(R.id.optionsButton);
-                        Button b2 =findViewById(R.id.optionsButton1);
-                        Button b3 =findViewById(R.id.button2);
-                        Button b4 =findViewById(R.id.button);
-                        b1.setVisibility(View.GONE);
-                        b2.setVisibility(View.GONE);
-                        b3.setVisibility(View.GONE);
-                        b4.setVisibility(View.GONE);
-                        selected_marker =marker;
-                        marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
-                        t.setVisibility(View.VISIBLE);
-                        b.setVisibility(View.VISIBLE);
-                        SpannableString content = new SpannableString(marker.getTitle()+"\n"+marker.getSnippet());
-                        content.setSpan(new RelativeSizeSpan(1.5f),0,marker.getTitle().toString().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        content.setSpan(new RelativeSizeSpan(0.8f),marker.getTitle().toString().length(),marker.getSnippet().toString().length(), Spannable.SPAN_EXCLUSIVE_INCLUSIVE);
-
-                        t.setText(content);
-                        b.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                mMap.clear();
-                                PD.setMessage("Selecting Best Rout For you, please wait...");
-                                PD.show();
-                                List<LatLng> waypoints = new ArrayList<>();
-                                waypoints.add(usr);
-                                waypoints.add(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude));
-                                RoutingTask rtsk = new RoutingTask(mMap, poly);
-                                rtsk.execute(waypoints);
-                                MarkerOptions markerOptions = new MarkerOptions()
-                                        .position(marker.getPosition())
-                                        .title(marker.getSnippet().toString())
-                                        .snippet(marker.getSnippet().toString())
-                                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE));
-                                mMap.addMarker(markerOptions);
-                                startLocationUpdates();
-                                t.setVisibility(View.GONE);
-                                b.setVisibility(View.GONE);
-                                PD.dismiss();
-                                b1.setVisibility(View.VISIBLE);
-                                b2.setVisibility(View.VISIBLE);
-                                b3.setVisibility(View.VISIBLE);
-                                b4.setVisibility(View.VISIBLE);
-                            }
-                        });
-                    }
-                    return true;
-                }
-            });
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 18),4000,null); // Adjust the zoom level as desired
-        }else {
-            startLocationUpdates();
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
         }
+        LocationServices.getFusedLocationProviderClient(this).getLastLocation().addOnSuccessListener(this, location -> {
+            String lat = null;
+            String lng = null;
+            LatLng userLocation;
+                    if (location != null) {
+                        lat = String.valueOf(location.getLatitude());
+                        lng = String.valueOf(location.getLongitude());
+                    }
+                    if (lat != null && lng != null && !lat.isEmpty() && !lng.isEmpty()) {
+                        double latitude = Double.parseDouble(lat);
+                        double longitude = Double.parseDouble(lng);
+                        // Get the custom marker layout as a Bitmap
+                        IconGenerator iconGenerator = new IconGenerator(this); // 'this' refers to the context of the current activity
+                        View markerLayout = LayoutInflater.from(this).inflate(R.layout.custom_marker_layout, null);
+                        iconGenerator.setContentView(markerLayout);
+// Create a BitmapDescriptor from the custom marker layout
+                        customMarker = BitmapDescriptorFactory.fromBitmap(iconGenerator.makeIcon());
+// Add the custom marker to the map
+                        userLocation = new LatLng(latitude, longitude);
+                        usr = userLocation;
+                        mMap.setTrafficEnabled(true);
+                        mMap.setBuildingsEnabled(true);
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 18), 4000, null); // Adjust the zoom level as desired
+                    } else {
+                        startLocationUpdates();
+                    }
+                });
+                mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+                    @Override
+                    public void onMapClick(LatLng latLng) {
+                        TextView t = findViewById(R.id.textView);
+                        Button b = findViewById(R.id.button3);
+                        if (is_map_searched) {
+                            Button b5 = findViewById(R.id.button4);
+                            b5.setVisibility(View.VISIBLE);
+                            t.setVisibility(View.GONE);
+                            b.setVisibility(View.GONE);
+                        }
+                        if (!isJourney_Started) { // Hide the views when the map is clicked
+                            Button b1 = findViewById(R.id.optionsButton);
+                            Button b2 = findViewById(R.id.optionsButton1);
+                            Button b3 = findViewById(R.id.button2);
+                            Button b4 = findViewById(R.id.button);
+                            t.setVisibility(View.GONE);
+                            b.setVisibility(View.GONE);
+                            b1.setVisibility(View.VISIBLE);
+                            b2.setVisibility(View.VISIBLE);
+                            b3.setVisibility(View.VISIBLE);
+                            b4.setVisibility(View.VISIBLE);
+                            if (selected_marker != null) {
+                                selected_marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE));
+                            }
+                        }
+                    }
+                });
+                mMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
+                    @Override
+                    public void onMapLongClick(@NonNull LatLng latLng) {
+                        location_added = false;
+                        is_map_searched=false;
+                        mMap.clear();
 
-    }
-    private void setupMap(String setting) {
+                    }
+                });
+                mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+                    @Override
+                    public boolean onMarkerClick(Marker marker) {
+                        TextView t = findViewById(R.id.textView);
+                        Button b = findViewById(R.id.button3);
+                        if (!marker.getTitle().toString().equals("Your Location")) {
+                            Button b1 = findViewById(R.id.optionsButton);
+                            Button b2 = findViewById(R.id.optionsButton1);
+                            Button b3 = findViewById(R.id.button2);
+                            Button b4 = findViewById(R.id.button);
+                            Button b5 = findViewById(R.id.button4);
+                            t.setVisibility(View.VISIBLE);
+                            b.setVisibility(View.VISIBLE);
+                            b5.setVisibility(View.GONE);
+                            b1.setVisibility(View.GONE);
+                            b2.setVisibility(View.GONE);
+                            b3.setVisibility(View.GONE);
+                            b4.setVisibility(View.GONE);
+                            selected_marker = marker;
+                            marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
+                            SpannableString content = new SpannableString(marker.getTitle() + "\n" + marker.getSnippet());
+                            content.setSpan(new RelativeSizeSpan(1.5f), 0, marker.getTitle().toString().length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            content.setSpan(new RelativeSizeSpan(0.8f), marker.getTitle().toString().length(), marker.getSnippet().toString().length(), Spannable.SPAN_EXCLUSIVE_INCLUSIVE);
+                            t.setText(content);
+                            b.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    mMap.clear();
+                                    PD.setMessage("Selecting Best Rout For you, please wait...");
+                                    PD.show();
+                                    List<LatLng> waypoints = new ArrayList<>();
+                                    waypoints.add(usr);
+                                    waypoints.add(new LatLng(marker.getPosition().latitude, marker.getPosition().longitude));
+                                    RoutingTask rtsk = new RoutingTask(mMap, poly);
+                                    rtsk.execute(waypoints);
+                                    MarkerOptions markerOptions = new MarkerOptions()
+                                            .position(marker.getPosition())
+                                            .title(marker.getTitle().toString())
+                                            .snippet(marker.getSnippet().toString())
+                                            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE));
+                                    mMap.addMarker(markerOptions);
+                                    startLocationUpdates();
+                                    t.setVisibility(View.GONE);
+                                    b.setVisibility(View.GONE);
+                                    PD.dismiss();
+                                    b1.setVisibility(View.VISIBLE);
+                                    b2.setVisibility(View.VISIBLE);
+                                    b3.setVisibility(View.VISIBLE);
+                                    b4.setVisibility(View.VISIBLE);
+                                }
+                            });
+                        }
+                        return true;
+                    }
+                });
+
+        }
+        private void setupMap(String setting) {
         switch (setting) {
             case "Satellite Mode":
                 mMap.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
@@ -617,6 +669,8 @@ private void addMarkers() {
     }
     public void get_loc_tour(View view) {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
+        progressDialog.setMessage("Updating Map please wait...");
+        progressDialog.show();
         executorService.execute(new Runnable() {
             @Override
             public void run() {
@@ -637,14 +691,11 @@ private void addMarkers() {
                                         double latitude = tourSnapshot.child("Lat").getValue(Double.class);
                                         double longitude = tourSnapshot.child("Long").getValue(Double.class);
                                         LatLng location = new LatLng(latitude, longitude);
-
-                                        if (!markerExists(location)) {
                                             double distance = LocationUtils_calculate.calculateDistance(new LatLng(usr.latitude, usr.longitude), location);
                                             if (distance <= 100) {
-                                                updateMapForTour(tourSnapshot);
+                                                updateMapForTour(tourSnapshot,usr);
                                                 location_added =true;
                                             }
-                                        }
                                     }
                                     if(!location_added)
                                     {
@@ -653,15 +704,65 @@ private void addMarkers() {
                                 }
                             }
                         }
-                    });
+                    });progressDialog.dismiss();
+
                 } catch (IOException e) {
+                    progressDialog.dismiss();
+                    throw new RuntimeException(e);
+
+                }
+            }
+        });
+    }
+
+
+    public void get_loc_tour_for_search(LatLng lction) {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.execute(new Runnable() {
+            @Override
+            public void run() {
+                Geocoder geo = new Geocoder(MapsActivity.this);
+                try {
+                    List<Address> addresses = geo.getFromLocation(lction.latitude, lction.longitude, 1);
+                    // Use addresses if needed
+
+                    DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
+                    mDatabase.child("Tour").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
+                        @Override
+                        public void onComplete(@NonNull Task<DataSnapshot> task) {
+                            if (task.isSuccessful()) {
+                                DataSnapshot dataSnapshot = task.getResult();
+                                if (dataSnapshot != null) {
+                                    for (DataSnapshot tourSnapshot : dataSnapshot.getChildren()) {
+                                        String placeName = tourSnapshot.getKey();
+                                        double latitude = tourSnapshot.child("Lat").getValue(Double.class);
+                                        double longitude = tourSnapshot.child("Long").getValue(Double.class);
+                                        LatLng location = new LatLng(latitude, longitude);
+                                            double distance = LocationUtils_calculate.calculateDistance(new LatLng(lction.latitude, lction.longitude), location);
+                                            if (distance <= 100) {
+                                                updateMapForTour(tourSnapshot,lction);
+                                                location_added =true;
+                                            }
+                                    }
+                                    if(!location_added)
+                                    {
+                                        Toast.makeText(MapsActivity.this, "Data not found for This location", Toast.LENGTH_SHORT).show();
+                                        progressDialog.dismiss();
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    progressDialog.dismiss();
+                } catch (IOException e) {
+                    progressDialog.dismiss();
                     throw new RuntimeException(e);
                 }
             }
         });
     }
 
-    private void updateMapForTour(DataSnapshot tourSnapshot) {
+    private void updateMapForTour(DataSnapshot tourSnapshot,LatLng usr) {
         for (DataSnapshot place : tourSnapshot.getChildren()) {
             if (place != null && !(place.getKey().equals("Lat") || place.getKey().equals("Long"))) {
                 double place_lat = place.child("Lat ").getValue(Double.class);

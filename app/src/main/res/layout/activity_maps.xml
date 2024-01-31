@@ -11,8 +11,6 @@
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:clickable="true"
-        android:enabled="true"
         tools:context=".MapsActivity" />
 
     <Button
@@ -77,6 +75,7 @@
 
             <SearchView
                 android:id="@+id/mapsearch"
+                style="@style/Widget.AppCompat.SearchView"
                 android:layout_width="280dp"
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
@@ -85,7 +84,6 @@
                 android:layout_marginTop="20dp"
                 android:layout_marginBottom="10dp"
                 android:background="@drawable/bg_search"
-                style="@style/Widget.AppCompat.SearchView"
                 android:elevation="5dp"
                 android:iconifiedByDefault="false"
                 android:queryHint="Search.."></SearchView>
@@ -109,15 +107,15 @@
 
             <ListView
                 android:id="@+id/listView"
-                android:layout_width="357dp"
+                android:layout_width="319dp"
                 android:layout_height="wrap_content"
                 android:layout_below="@+id/mapsearch"
                 android:layout_alignParentStart="true"
-                android:layout_marginStart="10dp"
-                android:layout_marginTop="0dp"
+                android:layout_marginStart="9dp"
+                android:layout_marginTop="-11dp"
                 android:background="@color/white"
                 android:visibility="gone"
-                tools:visibility="gone">
+                tools:visibility="visible">
 
             </ListView>
         </RelativeLayout>
@@ -131,7 +129,8 @@
         android:layout_alignParentStart="true"
         android:layout_alignParentBottom="true"
         android:layout_marginStart="0dp"
-        android:layout_marginBottom="-2dp">
+        android:layout_marginBottom="57dp"
+        tools:visibility="visible">
 
         <TextView
             android:id="@+id/textView"
@@ -144,12 +143,12 @@
             android:background="@drawable/flashy_background"
             android:fontFamily="sans-serif-condensed"
             android:gravity="left"
-            android:paddingStart="4dp"
-            android:text="TextView"
+            android:paddingStart="8dp"
+            android:paddingBottom="70dp"
+            android:text=""
             android:textColor="@color/white"
             android:textSize="19dp"
             android:textStyle="bold"
-            android:paddingBottom="70dp"
             android:visibility="gone"
             tools:visibility="visible" />
     </ScrollView>
@@ -162,12 +161,28 @@
         android:layout_alignParentBottom="true"
         android:layout_marginStart="0dp"
         android:layout_marginTop="0dp"
-        android:layout_marginEnd="5dp"
-        android:layout_marginBottom="10dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="64dp"
         android:background="@drawable/button"
         android:fontFamily="sans-serif-condensed"
         android:onClick="showHospitals"
         android:text="Start Journey"
+        android:textColor="@color/white"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <Button
+        android:id="@+id/button4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="13dp"
+        android:layout_marginBottom="19dp"
+        android:background="@drawable/button"
+        android:gravity="center"
+        android:padding="15dp"
+        android:text="Find nearby tourist locations"
         android:textColor="@color/white"
         android:visibility="gone"
         tools:visibility="visible" />

@@ -1,5 +1,7 @@
 package com.example.googlemaps;
 
+import static com.example.googlemaps.MapsActivity.isJourney_Started;
+
 import android.graphics.Color;
 import android.os.AsyncTask;
 import com.google.android.gms.maps.GoogleMap;
@@ -63,7 +65,7 @@ public class RoutingTask extends AsyncTask<List<LatLng>, Void, PolylineOptions> 
 
             // Set polyline properties (color, width, etc.)
             polylineOptions.width(23).color(Color.BLUE);
-
+            isJourney_Started =true ;
             return polylineOptions;
 
         } catch (Exception e) {
