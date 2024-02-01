@@ -9,14 +9,19 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.icu.text.DecimalFormat;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.RelativeSizeSpan;
@@ -67,6 +72,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     private Marker selected_marker;
     private List<Marker> markerList = new ArrayList<>();
+    private SpeechRecognizer speechRecognizer;
+    private Intent speechRecognizerIntent;
+    private long lastSpeechEndTime = 0;
     private Marker m1;
     static Polyline poly;
     BitmapDescriptor customMarker;
@@ -143,10 +151,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     SphericalUtil PolyUtil = null;
                     List<LatLng> polylinePoints = Arrays.asList(usr, latLng);
                     float distance = (float) PolyUtil.computeLength(polylinePoints);
+                    isJourney_Started=false;double distanceInKm = distance / 1000.0;
+                    double roundedDistance = Math.round(distanceInKm * 100.0) / 100.0; // Round to 2 decimal places
+                    DecimalFormat df = new DecimalFormat("#.##");
+                    String formattedDistance = df.format(roundedDistance);
+
                     m1 = mMap.addMarker(new MarkerOptions()
                             .position(latLng)
                             .title(address.getFeatureName())
-                            .snippet(address.getAddressLine(0) + "\nDistance: " + String.format("%2f", distance / 1000) + "Km from Your Location")
+                            .snippet(address.getAddressLine(0) + "\nDistance: " + formattedDistance + "Km from Your Location")
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)));
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18), 5000, null);
                     Button b4 = findViewById(R.id.button4);
@@ -202,10 +215,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 List<LatLng> polylinePoints = Arrays.asList(usr, latLng);
                 is_map_searched = true;
                 float distance = (float) PolyUtil.computeLength(polylinePoints);
+                isJourney_Started=false;
+                double distanceInKm = distance / 1000.0;
+                double roundedDistance = Math.round(distanceInKm * 100.0) / 100.0; // Round to 2 decimal places
+                DecimalFormat df = new DecimalFormat("#.##");
+                String formattedDistance = df.format(roundedDistance);
                 m1 = mMap.addMarker(new MarkerOptions()
                         .position(latLng)
                         .title(s_add.getFeatureName())
-                        .snippet(s_add.getAddressLine(0) + "\nDistance: " + String.format("%2f", distance / 1000) + "Km from Your Location")
+                        .snippet(s_add.getAddressLine(0) + "\nDistance: " + formattedDistance+ "Km from Your Location")
                         .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)));
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18), 5000, null);
                 Button b4 = findViewById(R.id.button4);
@@ -224,6 +242,60 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 listView.setVisibility(View.GONE);
             }
         });
+
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+        speechRecognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+
+        speechRecognizer.setRecognitionListener(new RecognitionListener() {
+
+            @Override
+            public void onReadyForSpeech(Bundle params) {
+
+            }
+
+            @Override
+            public void onBeginningOfSpeech() {
+
+            }
+
+            @Override
+            public void onRmsChanged(float rmsdB) {
+
+            }
+
+            @Override
+            public void onBufferReceived(byte[] buffer) {
+
+            }
+
+            @Override
+            public void onEndOfSpeech() {
+                lastSpeechEndTime = System.currentTimeMillis();
+            }
+
+            @Override
+            public void onError(int error) {
+
+            }
+
+            @Override
+            public void onResults(Bundle results) {
+
+            }
+
+            @Override
+            public void onPartialResults(Bundle partialResults) {
+
+            }
+
+            @Override
+            public void onEvent(int eventType, Bundle params) {
+
+            }
+        });
+
     }
 
     // Function for setting up geocoder
@@ -306,21 +378,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             t.setVisibility(View.GONE);
                             b.setVisibility(View.GONE);
                         }
-                        if (!isJourney_Started) { // Hide the views when the map is clicked
-                            Button b1 = findViewById(R.id.optionsButton);
-                            Button b2 = findViewById(R.id.optionsButton1);
-                            Button b3 = findViewById(R.id.button2);
-                            Button b4 = findViewById(R.id.button);
-                            t.setVisibility(View.GONE);
-                            b.setVisibility(View.GONE);
-                            b1.setVisibility(View.VISIBLE);
-                            b2.setVisibility(View.VISIBLE);
-                            b3.setVisibility(View.VISIBLE);
-                            b4.setVisibility(View.VISIBLE);
-                            if (selected_marker != null) {
-                                selected_marker.setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE));
-                            }
-                        }
+                        Button b1 = findViewById(R.id.optionsButton);
+                        Button b2 = findViewById(R.id.optionsButton1);
+                        Button b3 = findViewById(R.id.button2);
+                        Button b4 = findViewById(R.id.button);
+                        t.setVisibility(View.GONE);
+                        b.setVisibility(View.GONE);
+                        b1.setVisibility(View.VISIBLE);
+                        b2.setVisibility(View.VISIBLE);
+                        b3.setVisibility(View.VISIBLE);
+                        b4.setVisibility(View.VISIBLE);
                     }
                 });
                 mMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
@@ -343,8 +410,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             Button b3 = findViewById(R.id.button2);
                             Button b4 = findViewById(R.id.button);
                             Button b5 = findViewById(R.id.button4);
-                            t.setVisibility(View.VISIBLE);
-                            b.setVisibility(View.VISIBLE);
+                            if(!isJourney_Started)
+                            {
+                                t.setVisibility(View.VISIBLE);
+                                b.setVisibility(View.VISIBLE);
+                            }else{
+                                b.setVisibility(View.GONE);
+                                t.setVisibility(View.VISIBLE);
+                            }
                             b5.setVisibility(View.GONE);
                             b1.setVisibility(View.GONE);
                             b2.setVisibility(View.GONE);
@@ -403,8 +476,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             case "Terrain Mode":
                 mMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
                 break;
-            default:
-                mMap.setMapType(GoogleMap.MAP_TYPE_HYBRID);
         }
     }
 
@@ -460,22 +531,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (m1 != null) {
-            m1.remove();
-        }
-        // Remove existing marker and recycle the customMarker bitmap
-        if (usermarker != null) {
-            usermarker.remove();
-        }
-        // Stop location updates when the activity is destroyed
-        if (fusedLocationClient != null && locationCallback != null) {
-            fusedLocationClient.removeLocationUpdates(locationCallback);
-        }
-    }
-
     public void showOptionsPopup(View view) {
         PopupMenu popupMenu = new PopupMenu(this, view);
         popupMenu.getMenuInflater().inflate(R.menu.options_menu, popupMenu.getMenu());
@@ -507,6 +562,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         addMarkers();
     }
 //Markers
+@SuppressLint("StaticFieldLeak")
 private void addMarkers() {
     new AsyncTask<Void, Void, List<Address>>() {
 
@@ -632,7 +688,7 @@ private void addMarkers() {
     }
     public  void  openmic(View view)
     {
-        Toast.makeText(this, "Button clicked", Toast.LENGTH_SHORT).show();
+        convertSpeechToText();
     }
     private class GeocodeTask extends AsyncTask<String, Void, List<String>> {
 
@@ -791,6 +847,56 @@ private void addMarkers() {
             return (int) BitmapDescriptorFactory.HUE_ORANGE;
         } else {
             return (int) BitmapDescriptorFactory.HUE_ROSE;
+        }
+    }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (m1 != null) {
+            m1.remove();
+        }
+        // Remove existing marker and recycle the customMarker bitmap
+        if (usermarker != null) {
+            usermarker.remove();
+        }
+        // Stop location updates when the activity is destroyed
+        if (fusedLocationClient != null && locationCallback != null) {
+            fusedLocationClient.removeLocationUpdates(locationCallback);
+        }
+        if (speechRecognizer != null) {
+            speechRecognizer.destroy();
+        }
+    }
+    private void convertSpeechToText() {
+        try {
+            startActivityForResult(speechRecognizerIntent, 1);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(MapsActivity.this, "Speech recognition not supported on this device", Toast.LENGTH_SHORT).show();
+        }
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == 1 && resultCode == RESULT_OK && data != null) {
+            ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+            if (matches != null && !matches.isEmpty()) {
+                String text = matches.get(0);
+                Map_Search.setQuery(text,true);
+            }
+        }
+
+        // Check for a pause between speeches
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastSpeechEndTime > 4000) { // Adjust the pause duration as needed (e.g., 2000 milliseconds)
+            stopSpeechRecognition();
+        }
+    }
+
+    private void stopSpeechRecognition() {
+        if (speechRecognizer != null) {
+            speechRecognizer.stopListening();
+            speechRecognizer.cancel();
         }
     }
 }

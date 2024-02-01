@@ -100,7 +100,6 @@
                 android:layout_weight="1"
                 android:background="@drawable/mic"
                 android:foreground="@drawable/baseline_mic_24"
-
                 android:onClick="openmic"
                 android:scaleType="fitCenter"
                 map:srcCompat="@drawable/baseline_mic_24" />

@@ -99,7 +99,7 @@ public class Loginsighnup2 extends AppCompatActivity implements GoogleApiClient.
 
                                             saveLastLoginTimestamp();
                                             saveUserCredentials(email, password);
-                                            Intent intent = new Intent(Loginsighnup2.this, MapsActivity.class);
+                                            Intent intent = new Intent(Loginsighnup2.this, HomeActivity.class);
                                             startActivity(intent);
                                             finish(); // Optional, to finish the login activity
                                         } else {
@@ -149,7 +149,7 @@ public class Loginsighnup2 extends AppCompatActivity implements GoogleApiClient.
                                 if (task.isSuccessful()) {
                                     FirebaseUser user = mAuth.getCurrentUser();
                                     Toast.makeText(Loginsighnup2.this, "Automatic login successful.", Toast.LENGTH_SHORT).show();
-                                    Intent intent = new Intent(Loginsighnup2.this, MapsActivity.class);
+                                    Intent intent = new Intent(Loginsighnup2.this, HomeActivity.class);
                                     startActivity(intent);
                                     finish();
                                 } else {
@@ -224,7 +224,7 @@ public class Loginsighnup2 extends AppCompatActivity implements GoogleApiClient.
                             FirebaseUser user = mAuth.getCurrentUser();
                             Toast.makeText(Loginsighnup2.this, "Google Sign In successful.", Toast.LENGTH_SHORT).show();
 
-                             Intent intent = new Intent(Loginsighnup2.this, MapsActivity.class);
+                             Intent intent = new Intent(Loginsighnup2.this, HomeActivity.class);
                              startActivity(intent);
                              finish();
                         } else {
