@@ -1,5 +1,6 @@
 package com.example.googlemaps;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,11 +25,24 @@ private ActivityHomeBinding binding;
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
         AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.navigation_home, R.id.navigation_dashboard, R.id.navigation_notifications)
+                R.id.navigation_home, R.id.navigation_dashboard)
                 .build();
         NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_activity_home);
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
         NavigationUI.setupWithNavController(binding.navView, navController);
     }
+    @Override
+    public void onBackPressed() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("Do you want to exit?");
+        builder.setPositiveButton("Yes", (dialog, which) -> {
+            super.onBackPressed(); // Let the system handle the back press
+            finishAffinity();
+        });
+        builder.setNegativeButton("No", (dialog, which) -> {
+        });
+        builder.show();
+    }
+
 
 }

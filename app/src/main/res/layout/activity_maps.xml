@@ -86,7 +86,9 @@
                 android:background="@drawable/bg_search"
                 android:elevation="5dp"
                 android:iconifiedByDefault="false"
-                android:queryHint="Search.."></SearchView>
+                android:queryHint="Search..">
+
+            </SearchView>
 
             <ImageView
                 android:id="@+id/imageView3"

@@ -1,4 +1,5 @@
 package com.example.googlemaps;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -48,7 +49,15 @@ public class Loginsighnup2 extends AppCompatActivity implements GoogleApiClient.
         setContentView(R.layout.activity_loginsighnup2);
 
         mAuth = FirebaseAuth.getInstance();
-
+        sharedPreferences = getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
+        String is_first = "is_first";
+        boolean is_first_time = sharedPreferences.getBoolean(is_first, true);
+        if(is_first_time)
+        {
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putBoolean(is_first,false);
+            editor.apply();
+        }
         emailTextInputLayout = findViewById(R.id.textInputLayoutEmail);
         passwordTextInputLayout = findViewById(R.id.textInputLayoutPassword);
         signInButton = findViewById(R.id.button7);
@@ -237,5 +246,17 @@ public class Loginsighnup2 extends AppCompatActivity implements GoogleApiClient.
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
         Toast.makeText(this, "Google Play services connection failed.", Toast.LENGTH_SHORT).show();
+    }
+    @Override
+    public void onBackPressed() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("Do you want to exit?");
+        builder.setPositiveButton("Yes", (dialog, which) -> {
+            super.onBackPressed(); // Let the system handle the back press
+            finishAffinity();
+        });
+        builder.setNegativeButton("No", (dialog, which) -> {
+        });
+        builder.show();
     }
 }

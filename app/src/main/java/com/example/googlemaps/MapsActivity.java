@@ -151,7 +151,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     SphericalUtil PolyUtil = null;
                     List<LatLng> polylinePoints = Arrays.asList(usr, latLng);
                     float distance = (float) PolyUtil.computeLength(polylinePoints);
-                    isJourney_Started=false;double distanceInKm = distance / 1000.0;
+                    isJourney_Started=false;
+                    double distanceInKm = distance / 1000.0;
                     double roundedDistance = Math.round(distanceInKm * 100.0) / 100.0; // Round to 2 decimal places
                     DecimalFormat df = new DecimalFormat("#.##");
                     String formattedDistance = df.format(roundedDistance);
@@ -544,20 +545,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         popupMenu.show();
     }
 
-    @Override
-    public void onBackPressed() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage("Do you want to exit?");
-        builder.setPositiveButton("Yes", (dialog, which) -> {
-            onDestroy();
-            finishAffinity();
-        });
-        builder.setNegativeButton("No", (dialog, which) -> {
-        });
-        builder.show();
-
-    }
-
     public void showHospitals(View view) {
         addMarkers();
     }
@@ -691,7 +678,6 @@ private void addMarkers() {
         convertSpeechToText();
     }
     private class GeocodeTask extends AsyncTask<String, Void, List<String>> {
-
         @Override
         protected List<String> doInBackground(String... params) {
             List<String> resultCities = new ArrayList<>();
@@ -714,7 +700,6 @@ private void addMarkers() {
             }
             return resultCities;
         }
-
         @Override
         protected void onPostExecute(List<String> resultCities) {
             // Update the list view with the new city names

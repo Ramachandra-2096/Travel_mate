@@ -58,15 +58,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onFinish() {
                 SharedPreferences sharedPreferences = getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
+                String is_first = "is_first";
                 boolean is_first_time = sharedPreferences.getBoolean(is_first, true);
                 if(is_first_time)
                 {
-                    SharedPreferences.Editor editor = sharedPreferences.edit();
-                    editor.putBoolean(is_first,false);
-                    editor.apply();
-                    startActivity(intent);
-                }
-                else{
+                   startActivity(intent);
+                }else{
                     startActivity(new Intent(MainActivity.this, Loginsighnup2.class));
                 }
 

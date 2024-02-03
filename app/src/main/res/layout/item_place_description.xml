@@ -12,9 +12,9 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:padding="10dp"
+        android:background="@drawable/background_recycle">
 
-        <!-- Your UI components for each item in the RecyclerView -->
         <ImageView
             android:id="@+id/imageView"
             android:layout_width="100dp"
@@ -28,6 +28,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="160dp"
             android:text="hello"
+            android:fontFamily="@font/first"
             android:textStyle="bold" />
 
         <TextView
@@ -37,8 +38,10 @@
             android:layout_marginStart="120dp"
             android:layout_below="@id/titleTextView"
             android:layout_marginTop="14dp"
+            android:fontFamily="@font/second"
             android:text="hello"
-            android:textSize="16sp" />
+            android:textSize="16sp"
+            android:layout_marginEnd="34dp"/>
 
     </RelativeLayout>
 </layout>

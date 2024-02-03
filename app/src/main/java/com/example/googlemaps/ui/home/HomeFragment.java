@@ -26,10 +26,8 @@ public class HomeFragment extends Fragment {
 
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
-        // New RecyclerView setup
         RecyclerView recyclerView = binding.recyclerView;
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-        // Dummy data for RecyclerView
         List<PlaceDescription> dummyData = getDummyData();
         PlaceDescriptionAdapter adapter = new PlaceDescriptionAdapter(dummyData);
         recyclerView.setAdapter(adapter);

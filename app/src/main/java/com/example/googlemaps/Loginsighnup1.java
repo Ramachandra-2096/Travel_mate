@@ -2,7 +2,10 @@ package com.example.googlemaps;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -22,16 +25,17 @@ public class Loginsighnup1 extends AppCompatActivity {
         private Button registerButton;
         private FirebaseAuth mAuth;
         private DatabaseReference databaseReference;
-        @Override
+    SharedPreferences sharedPreferences;
+    @Override
         protected void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             setContentView(R.layout.activity_loginsighnup1);
-
             nameEditText = findViewById(R.id.name);
             emailEditText = findViewById(R.id.email);
             passwordEditText = findViewById(R.id.password);
             confirmPasswordEditText = findViewById(R.id.confirmPassword);
             registerButton = findViewById(R.id.button6);
+            sharedPreferences = getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
 
             mAuth = FirebaseAuth.getInstance();
             databaseReference = FirebaseDatabase.getInstance().getReference("users");
@@ -76,7 +80,14 @@ public class Loginsighnup1 extends AppCompatActivity {
                                 // Store user details in the Realtime Database
                                 databaseReference.child(userId).child("name").setValue(name);
                                 databaseReference.child(userId).child("email").setValue(email);
-
+                                String is_first = "is_first";
+                                boolean is_first_time = sharedPreferences.getBoolean(is_first, true);
+                                if(is_first_time)
+                                {
+                                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                                    editor.putBoolean(is_first,false);
+                                    editor.apply();
+                                }
                                 Toast.makeText(Loginsighnup1.this, "Registration successful", Toast.LENGTH_SHORT).show();
                                 Intent intent=new Intent(Loginsighnup1.this, MapsActivity.class);
                                 startActivity(intent);
@@ -86,4 +97,16 @@ public class Loginsighnup1 extends AppCompatActivity {
                         }
                     });
         }
+    @Override
+    public void onBackPressed() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("Do you want to exit?");
+        builder.setPositiveButton("Yes", (dialog, which) -> {
+            super.onBackPressed(); // Let the system handle the back press
+            finishAffinity();
+        });
+        builder.setNegativeButton("No", (dialog, which) -> {
+        });
+        builder.show();
+    }
     }

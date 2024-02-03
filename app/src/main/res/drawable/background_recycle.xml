@@ -1,0 +1,10 @@
+<!-- res/drawable/round_button.xml -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <stroke
+                android:width="2dp" android:color="@android:color/holo_purple" />
+            <solid android:color="#83E9EBF3" />
+        </shape>
+    </item>
+</layer-list>
