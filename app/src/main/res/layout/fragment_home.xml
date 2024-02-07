@@ -65,7 +65,7 @@
             android:layout_below="@+id/searchView2"
             android:background="@color/white"
             android:visibility="visible"
-            tools:visibility="visible"></ListView>
+            tools:visibility="gone" />
 
     </RelativeLayout>
 </layout>
