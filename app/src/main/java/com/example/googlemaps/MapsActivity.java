@@ -686,7 +686,7 @@ private void addMarkers() {
             if(query.length()>=3) {
                 Geocoder geocoder = new Geocoder(MapsActivity.this, Locale.getDefault());
                 try {
-                    add = geocoder.getFromLocationName(query, 8);
+                    add = geocoder.getFromLocationName(query, 3);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

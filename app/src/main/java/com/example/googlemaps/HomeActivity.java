@@ -2,6 +2,10 @@ package com.example.googlemaps;
 
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.ListView;
+import android.widget.SearchView;
+
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
@@ -33,16 +37,27 @@ private ActivityHomeBinding binding;
     }
     @Override
     public void onBackPressed() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage("Do you want to exit?");
-        builder.setPositiveButton("Yes", (dialog, which) -> {
-            super.onBackPressed(); // Let the system handle the back press
-            finishAffinity();
-        });
-        builder.setNegativeButton("No", (dialog, which) -> {
-        });
-        builder.show();
+        SearchView searchView=findViewById(R.id.searchView2);
+        ListView list=findViewById(R.id.Listview_search_home);
+        if (searchView.isIconified()) {
+            // Search view is not active, ask for exit
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setMessage("Do you want to exit?");
+            builder.setPositiveButton("Yes", (dialog, which) -> {
+                super.onBackPressed(); // Let the system handle the back press
+                finishAffinity();
+            });
+            builder.setNegativeButton("No", (dialog, which) -> {
+            });
+            builder.show();
+        } else {
+            searchView.clearFocus();
+            list.setVisibility(View.GONE);
+            // Search view is active, close it
+            searchView.setIconified(true);
+        }
     }
+
 
 
 }
