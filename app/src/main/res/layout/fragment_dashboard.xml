@@ -33,10 +33,10 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentTop="true"
                 android:layout_marginTop="211dp"
-                android:fontFamily="@font/first"
+                android:fontFamily="@font/fifth"
                 android:gravity="center"
                 android:text="Loading..."
-                android:textSize="20dp" />
+                android:textSize="26dp" />
 
             <TextView
                 android:id="@+id/greeting"
@@ -48,7 +48,7 @@
                 android:layout_marginStart="96dp"
                 android:layout_marginTop="32dp"
                 android:layout_marginEnd="86dp"
-                android:fontFamily="@font/second"
+                android:fontFamily="@font/fourth"
                 android:gravity="center"
                 android:text="Welcome back..."
                 android:textSize="16dp" />

@@ -1,6 +1,6 @@
 package com.example.googlemaps.ui.home;
 
-import android.annotation.SuppressLint;
+
 import android.location.Address;
 import android.location.Geocoder;
 import android.os.Bundle;
@@ -13,19 +13,15 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListAdapter;
 import android.widget.ListView;
-import android.widget.RelativeLayout;
 import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.Observer;
-import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
+import com.example.googlemaps.LocationUtils_calculate;
 import com.example.googlemaps.databinding.FragmentHomeBinding;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.firebase.database.ChildEventListener;
@@ -33,7 +29,6 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -130,22 +125,40 @@ public class HomeFragment extends Fragment {
                 state = a.getAdminArea();
             }
             DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tourist_place").child(state);
-            databaseReference.limitToFirst(100).addChildEventListener(new ChildEventListener() {
+            databaseReference.addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(@NonNull DataSnapshot dataSnapshot, String previousChildName) {
                     String place = dataSnapshot.child("Place").getValue().toString();
-                    String review = dataSnapshot.child("Review").getValue().toString();
+                    String review = dataSnapshot.child("Description").getValue().toString();
                     String photo = dataSnapshot.child("Photo").getValue().toString();
+                    String rating = dataSnapshot.child("Rating").getValue().toString();
+                    String new_rating="";
                     if (place.isEmpty()) place = " ";
                     if (review.isEmpty()) review = " ";
                     if (photo.isEmpty()) photo = " ";
-                    dummyData1.add(new PlaceDescription(place, review, photo));
-                    Log.d("TAG", "onChildAdded: " + place + review + photo);
+                    if (rating.isEmpty()){
+                        rating = "3";
+                        new_rating="★★☆☆☆";
+                    }else{
+                        for(int i=1;i<=5;i++)
+                        {
+                            if(i<Math.floor(Float.parseFloat(rating)))
+                            {
+                                new_rating=new_rating + "★";
+                            }else {
+                                new_rating=new_rating + "☆";
+                            }
 
-                    // Use handler to post UI updates to the main thread
-                    handler.post(() -> liveData.setValue(dummyData1));
+                        }
+                    }
+
+                    if(LocationUtils_calculate.calculateDistance(new LatLng(Double.parseDouble(dataSnapshot.child("Latitude").getValue().toString()), Double.parseDouble(dataSnapshot.child("Longitude").getValue().toString())),new LatLng(address.get(0).getLatitude(),address.get(0).getLongitude()))<=20)
+                    {
+                        dummyData1.add(new PlaceDescription(place, review, photo,new_rating,new LatLng(Double.parseDouble(dataSnapshot.child("Latitude").getValue().toString()),Double.parseDouble(dataSnapshot.child("Longitude").getValue().toString()))));
+                        // Use handler to post UI updates to the main thread
+                        handler.post(() -> liveData.setValue(dummyData1));
+                    }
                 }
-
                 @Override
                 public void onChildChanged(@NonNull DataSnapshot dataSnapshot, String previousChildName) {
                     // Handle changes to existing data if needed

@@ -1,6 +1,7 @@
 package com.example.googlemaps.ui.home;
 
 import android.content.Intent;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.widget.Toast;
@@ -12,6 +13,7 @@ import com.example.googlemaps.R;
 import com.example.googlemaps.View_Activity;
 import com.example.googlemaps.databinding.ItemPlaceDescriptionBinding;
 import com.bumptech.glide.Glide;
+import com.google.android.gms.maps.model.LatLng;
 
 import java.util.List;
 
@@ -51,8 +53,11 @@ public class PlaceDescriptionAdapter extends RecyclerView.Adapter<PlaceDescripti
             intent.putExtra("PLACE_DESCRIPTION", clickedPlace.getDescription());
             intent.putExtra("PLACE_IMAGE", clickedPlace.getImageUrl());
             intent.putExtra("PLACE_TITLE", clickedPlace.getTitle());
+            intent.putExtra("PLACE_RATING", clickedPlace.getRating());
+            LatLng lt=clickedPlace.getLocation();
+            intent.putExtra("PLACE_LATITUDE",lt.latitude);
+            intent.putExtra("PLACE_LONGITUDE",lt.longitude);
             v.getContext().startActivity(intent);
-            Toast.makeText(v.getContext(), "Clicked item ID: "+clickedPlace.getTitle(), Toast.LENGTH_SHORT).show();
         });
     }
 
@@ -94,6 +99,7 @@ public class PlaceDescriptionAdapter extends RecyclerView.Adapter<PlaceDescripti
 
         public void bind(PlaceDescription place) {
             binding.titleTextView.setText(place.getTitle());
+            binding.RatingTextView.setText("Rating : " + place.getRating());
             binding.descriptionTextView.setText(place.getDescription());
             Glide.with(binding.getRoot())
                     .load(place.getImageUrl())

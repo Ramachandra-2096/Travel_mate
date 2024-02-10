@@ -19,12 +19,15 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.RelativeSizeSpan;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -41,6 +44,7 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -54,11 +58,12 @@ import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.maps.android.SphericalUtil;
 import com.google.maps.android.ui.IconGenerator;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -111,6 +116,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             public void onLocationEnabled() {
             }
 
+            @SuppressLint("UnsafeIntentLaunch")
             @Override
             public void onLocationDisabled() {
                 AlertDialog.Builder builder = new AlertDialog.Builder(MapsActivity.this);
@@ -162,7 +168,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             .title(address.getFeatureName())
                             .snippet(address.getAddressLine(0) + "\nDistance: " + formattedDistance + "Km from Your Location")
                             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_MAGENTA)));
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18), 5000, null);
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 18), 2000, null);
                     Button b4 = findViewById(R.id.button4);
                     b4.setVisibility(View.VISIBLE);
                     b4.setOnClickListener(new View.OnClickListener() {
@@ -250,7 +256,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         speechRecognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
 
         speechRecognizer.setRecognitionListener(new RecognitionListener() {
-
             @Override
             public void onReadyForSpeech(Bundle params) {
 
@@ -296,9 +301,50 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             }
         });
+        Intent intent = getIntent();
+        if (intent != null) {
+            String[] names = intent.getStringArrayExtra("Name");
+            assert names != null;
+            if(!names[0].isEmpty())
+            {
+                String state=intent.getStringExtra("State");
+                assert state != null;
+                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tourist_place").child(state);
+                for (String name : names) {
+                   databaseReference.child(name).addValueEventListener(new ValueEventListener() {
+                       @Override
+                       public void onDataChange(@NonNull DataSnapshot snapshot) {
+                           try {
+                               double latitude = snapshot.child("Latitude").getValue(Double.class);
+                               double longitude  = snapshot.child("Longitude").getValue(Double.class);
+                               String place = snapshot.child("Place").getValue(String.class);
+                               String description = snapshot.child("Description").getValue(String.class);
+                               // Call your draw_tour_location method
+                               // Define a Handler as a member variable in your class
+                               Handler mHandler = new Handler(Looper.getMainLooper());
+                               // Inside your background thread method
+                               mHandler.post(new Runnable() {
+                                   @Override
+                                   public void run() {
+                                       draw_tour_location(latitude, longitude, place, description);
+                                   }
+                               });
 
-    }
+                           } catch (NumberFormatException e) {
+                               // Handle the case where parsing to double fails
+                               e.printStackTrace();
+                           }
+                       }
 
+                       @Override
+                       public void onCancelled(@NonNull DatabaseError error) {
+
+                       }
+                   });
+                    }
+                }
+            }
+        }
     // Function for setting up geocoder
     public Address Get_geo_info(String location) {
         List<Address> addressList;
@@ -336,11 +382,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
      */
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
-
         mMap = googleMap;
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
+
         LocationServices.getFusedLocationProviderClient(this).getLastLocation().addOnSuccessListener(this, location -> {
             String lat = null;
             String lng = null;
@@ -349,7 +395,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         lat = String.valueOf(location.getLatitude());
                         lng = String.valueOf(location.getLongitude());
                     }
-                    if (lat != null && lng != null && !lat.isEmpty() && !lng.isEmpty()) {
+                    if (lat != null && !lat.isEmpty() && !lng.isEmpty()) {
                         double latitude = Double.parseDouble(lat);
                         double longitude = Double.parseDouble(lng);
                         // Get the custom marker layout as a Bitmap
@@ -480,10 +526,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    @SuppressLint("MissingPermission")
     private void startLocationUpdates() {
         LocationRequest locationRequest = new LocationRequest();
         locationRequest.setInterval(5000); // Update every 5 seconds
-        locationRequest.setFastestInterval(500); // Fastest update interval
+        locationRequest.setFastestInterval(900); // Fastest update interval
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         locationCallback = new LocationCallback() {
@@ -498,10 +545,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             }
         };
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null);
     }
 
@@ -642,6 +685,18 @@ private void addMarkers() {
         Marker marker = mMap.addMarker(markerOptions);
         markerList.add(marker);
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 12), 2000, null);
+    }
+    public void draw_tour_location(double latitude, double longitude, String place, String description) {
+        // Customize this line to set a custom marker icon if needed
+        BitmapDescriptor customMarker = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED);
+        MarkerOptions markerOptions = new MarkerOptions()
+                .position(new LatLng(latitude, longitude))
+                .title(place)
+                .snippet(description)
+                .icon(customMarker);
+        mMap.addMarker(markerOptions);
+        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), 12);
+        mMap.animateCamera(cameraUpdate, 2000, null);
     }
 
     public void showLocation(View view) {
