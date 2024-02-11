@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -20,8 +21,10 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.MutableLiveData;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.LinearSnapHelper;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.googlemaps.LocationUtils_calculate;
+import com.example.googlemaps.R;
 import com.example.googlemaps.databinding.FragmentHomeBinding;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.firebase.database.ChildEventListener;
@@ -43,7 +46,14 @@ public class HomeFragment extends Fragment {
     private PlaceDescriptionAdapter adapter;
     private TextView txt;
     private View root;
+    private  RecyclerView recyclerView2;
+    private List<Recommendation> recomen;
+    private RecommendationAdapter recadaptor;
     private MutableLiveData<List<PlaceDescription>> liveData = new MutableLiveData<>();
+    private int currentPosition = 0;
+    private static final int AUTO_SCROLL_DELAY = 3000; // Adjust the delay as needed
+    private Handler handler2;
+    private Runnable autoScrollRunnable;
 
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
@@ -51,6 +61,15 @@ public class HomeFragment extends Fragment {
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         root = binding.getRoot();
         txt = binding.increament;
+
+        recyclerView2 = root.findViewById(R.id.recyclerView2);
+        recyclerView2.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        LinearSnapHelper snapHelper = new LinearSnapHelper();
+        snapHelper.attachToRecyclerView(recyclerView2);
+        recomen = getYourPlaceDescriptionData();
+        recadaptor = new RecommendationAdapter(getActivity(), recomen);
+        recyclerView2.setAdapter(recadaptor);
+
 
         RecyclerView recyclerView = binding.recyclerView;
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -102,16 +121,68 @@ public class HomeFragment extends Fragment {
                 });
             }
         });
+        handler2 = new Handler();
+        autoScrollRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (recadaptor.getItemCount() > 0) {
+                    currentPosition = (currentPosition + 1) % recadaptor.getItemCount();
+                    recyclerView2.smoothScrollToPosition(currentPosition);
+                    handler.postDelayed(this, AUTO_SCROLL_DELAY);
+                }
+            }
+        };
+
+        // Start auto-scrolling when the activity is created
+        startAutoScroll();
+
+        // Stop auto-scrolling when the user interacts with the RecyclerView
+        recyclerView2.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(RecyclerView rv, MotionEvent e) {
+                stopAutoScroll();
+                return false;
+            }
+
+            @Override
+            public void onTouchEvent(RecyclerView rv, MotionEvent e) {
+            }
+
+            @Override
+            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
+            }
+        });
 
         return root;
+    }
+
+    private void startAutoScroll() {
+        handler.postDelayed(autoScrollRunnable, AUTO_SCROLL_DELAY);
+    }
+
+    private void stopAutoScroll() {
+        handler.removeCallbacks(autoScrollRunnable);
     }
 
     private void getDataInBackground(LatLng latLng) {
         new Thread(() -> {
             List<PlaceDescription> data = getData(latLng);
-            // Use handler to post UI updates to the main thread
             handler.post(() -> liveData.setValue(data));
         }).start();
+    }
+    private List<Recommendation> getYourPlaceDescriptionData() {
+        List<Recommendation> placeList = new ArrayList<>();
+        placeList.add(new Recommendation("Title1","https://www.bing.com/th?id=OIP.QLkEeaC1VM6Jme-LBaCpeQHaE3&w=163&h=100&c=8&rs=1&qlt=90&o=6&pid=3.1&rm=2"));
+        placeList.add(new Recommendation("Title2","https://www.bing.com/th?id=OIP.QLkEeaC1VM6Jme-LBaCpeQHaE3&w=163&h=100&c=8&rs=1&qlt=90&o=6&pid=3.1&rm=2"));
+        placeList.add(new Recommendation("Title3","https://www.bing.com/th?id=OIP.QLkEeaC1VM6Jme-LBaCpeQHaE3&w=163&h=100&c=8&rs=1&qlt=90&o=6&pid=3.1&rm=2"));
+        placeList.add(new Recommendation("Title4","https://www.bing.com/th?id=OIP.QLkEeaC1VM6Jme-LBaCpeQHaE3&w=163&h=100&c=8&rs=1&qlt=90&o=6&pid=3.1&rm=2"));
+        placeList.add(new Recommendation("Title5","https://www.bing.com/th?id=OIP.QLkEeaC1VM6Jme-LBaCpeQHaE3&w=163&h=100&c=8&rs=1&qlt=90&o=6&pid=3.1&rm=2"));
+        placeList.add(new Recommendation("Title6","https://www.bing.com/th?id=OIP.QLkEeaC1VM6Jme-LBaCpeQHaE3&w=163&h=100&c=8&rs=1&qlt=90&o=6&pid=3.1&rm=2"));
+        placeList.add(new Recommendation("Title7","https://www.bing.com/th?id=OIP.QLkEeaC1VM6Jme-LBaCpeQHaE3&w=163&h=100&c=8&rs=1&qlt=90&o=6&pid=3.1&rm=2"));
+        placeList.add(new Recommendation("Title8","https://www.bing.com/th?id=OIP.QLkEeaC1VM6Jme-LBaCpeQHaE3&w=163&h=100&c=8&rs=1&qlt=90&o=6&pid=3.1&rm=2"));
+        placeList.add(new Recommendation("Title9","https://www.bing.com/th?id=OIP.QLkEeaC1VM6Jme-LBaCpeQHaE3&w=163&h=100&c=8&rs=1&qlt=90&o=6&pid=3.1&rm=2"));
+        placeList.add(new Recommendation("Title10","https://www.bing.com/th?id=OIP.QLkEeaC1VM6Jme-LBaCpeQHaE3&w=163&h=100&c=8&rs=1&qlt=90&o=6&pid=3.1&rm=2"));
+        return placeList;
     }
 
     private List<PlaceDescription> getData(LatLng latLng) {

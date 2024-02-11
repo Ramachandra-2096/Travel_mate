@@ -1,11 +1,14 @@
 package com.example.googlemaps;
 
 import android.app.AlertDialog;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.SearchView;
 
+import com.example.googlemaps.Utility.NetworkChangeListener;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
@@ -15,8 +18,8 @@ import androidx.navigation.ui.NavigationUI;
 import com.example.googlemaps.databinding.ActivityHomeBinding;
 
 public class HomeActivity extends AppCompatActivity {
-
 private ActivityHomeBinding binding;
+NetworkChangeListener networkChangeListener=new NetworkChangeListener();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +61,16 @@ private ActivityHomeBinding binding;
         }
     }
 
+    @Override
+    protected void onStart() {
+        IntentFilter filter=new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+        registerReceiver(networkChangeListener,filter);
+        super.onStart();
+    }
 
-
+    @Override
+    protected void onStop() {
+        unregisterReceiver(networkChangeListener);
+        super.onStop();
+    }
 }

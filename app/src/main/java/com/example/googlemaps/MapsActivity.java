@@ -12,11 +12,13 @@ import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.icu.text.DecimalFormat;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.net.ConnectivityManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -38,6 +40,7 @@ import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.googlemaps.Utility.NetworkChangeListener;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationListener;
@@ -74,6 +77,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+    NetworkChangeListener networkChangeListener=new NetworkChangeListener();
     private GoogleMap mMap;
     private Marker selected_marker;
     private List<Marker> markerList = new ArrayList<>();
@@ -302,9 +306,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
         Intent intent = getIntent();
-        if (intent != null) {
-            String[] names = intent.getStringArrayExtra("Name");
-            assert names != null;
+        String[] names = intent.getStringArrayExtra("Name");
+        if (names != null) {
             if(!names[0].isEmpty())
             {
                 String state=intent.getStringExtra("State");
@@ -938,5 +941,17 @@ private void addMarkers() {
             speechRecognizer.stopListening();
             speechRecognizer.cancel();
         }
+    }
+    @Override
+    protected void onStart() {
+        IntentFilter filter=new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+        registerReceiver(networkChangeListener,filter);
+        super.onStart();
+    }
+
+    @Override
+    protected void onStop() {
+        unregisterReceiver(networkChangeListener);
+        super.onStop();
     }
 }
