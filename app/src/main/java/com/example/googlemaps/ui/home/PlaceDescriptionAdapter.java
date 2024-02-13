@@ -15,6 +15,7 @@ import com.example.googlemaps.databinding.ItemPlaceDescriptionBinding;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.maps.model.LatLng;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PlaceDescriptionAdapter extends RecyclerView.Adapter<PlaceDescriptionAdapter.ViewHolder> {
@@ -26,6 +27,15 @@ public class PlaceDescriptionAdapter extends RecyclerView.Adapter<PlaceDescripti
     }
 
     private OnItemCheckedChangeListener listener;
+    public String[] getSelectedItems() {
+        List<String> selectedItems = new ArrayList<>();
+        for (PlaceDescription place : data) {
+            if (place.isChecked()) {
+                selectedItems.add(place.getTitle());
+            }
+        }
+        return selectedItems.toArray(new String[0]);
+    }
 
     public void setOnItemCheckedChangeListener(OnItemCheckedChangeListener listener) {
         this.listener = listener;

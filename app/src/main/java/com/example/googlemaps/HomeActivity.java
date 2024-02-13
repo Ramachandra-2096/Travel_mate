@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.SearchView;
+import android.widget.TextView;
 
 import com.example.googlemaps.Utility.NetworkChangeListener;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -15,6 +16,8 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.example.googlemaps.databinding.ActivityHomeBinding;
 
 public class HomeActivity extends AppCompatActivity {
@@ -42,6 +45,8 @@ NetworkChangeListener networkChangeListener=new NetworkChangeListener();
     public void onBackPressed() {
         SearchView searchView=findViewById(R.id.searchView2);
         ListView list=findViewById(R.id.Listview_search_home);
+        RecyclerView rec1=findViewById(R.id.recyclerView);
+        rec1.setVisibility(View.GONE);
         if (searchView.isIconified()) {
             // Search view is not active, ask for exit
             AlertDialog.Builder builder = new AlertDialog.Builder(this);

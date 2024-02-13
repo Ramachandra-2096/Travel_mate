@@ -17,8 +17,9 @@
             android:id="@+id/imageView_rec"
             android:layout_width="170dp"
             android:layout_height="170dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/tour" />
+            android:scaleType="centerCrop"
+            android:src="@drawable/tour"
+            />
 
         <TextView
             android:id="@+id/textview_rec"
@@ -27,9 +28,11 @@
             android:layout_gravity="bottom"
             android:layout_marginStart="12dp"
             android:layout_marginBottom="12dp"
-            android:background="@color/black"
+            android:background="@drawable/textview"
             android:text="hello"
+            android:padding="7dp"
+            android:textStyle="italic"
             android:textColor="@color/white"
-            android:gravity="center"/>
+            android:gravity="center" />
     </androidx.cardview.widget.CardView>
 </RelativeLayout>

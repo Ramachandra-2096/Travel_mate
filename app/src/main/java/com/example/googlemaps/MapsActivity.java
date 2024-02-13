@@ -412,7 +412,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         usr = userLocation;
                         mMap.setTrafficEnabled(true);
                         mMap.setBuildingsEnabled(true);
-                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 18), 4000, null); // Adjust the zoom level as desired
+                        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 10), 500, null); // Adjust the zoom level as desired
                     } else {
                         startLocationUpdates();
                     }
