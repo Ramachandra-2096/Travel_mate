@@ -1,0 +1,12 @@
+<!-- res/drawable/candy_crush_button.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="30dp" />
+    <gradient
+        android:startColor="#FFD700"
+        android:endColor="#C800FF"
+        android:type="linear"
+        android:angle="45"/>
+    <stroke
+        android:width="2dp"
+        android:color="#FFFFFF" />
+</shape>

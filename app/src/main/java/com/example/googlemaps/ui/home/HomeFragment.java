@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.location.Address;
 import android.location.Geocoder;
-import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -25,6 +24,7 @@ import android.widget.ProgressBar;
 import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.MutableLiveData;
@@ -58,16 +58,20 @@ public class HomeFragment extends Fragment {
     private PlaceDescriptionAdapter adapter;
     private TextView txt;
     private View root;
-    private  RecyclerView recyclerView2;
+    private RecyclerView recyclerView2;
+    private RecyclerView recyclerView3;
     List<String> cityNames;
     private List<Recommendation> recomen;
+    private List<Recommendation> hotelrecomen;
     private RecommendationAdapter recadaptor;
+    private RecommendationAdapter hoteladaptor;
     private ProgressBar progressBar;
+    private ProgressBar progressBar2;
     ArrayAdapter<String> nameAdapter;
 
     private MutableLiveData<List<PlaceDescription>> liveData = new MutableLiveData<>();
     private int currentPosition = 0;
-    private boolean isfirst=true;
+    private boolean isfirst = true;
     private static final int AUTO_SCROLL_DELAY = 6000; // Adjust the delay as needed
     private Handler handler2;
     private Runnable autoScrollRunnable;
@@ -81,12 +85,19 @@ public class HomeFragment extends Fragment {
         if (!isLocationEnabled()) {
             // Location services are not enabled, show a dialog or navigate to settings
             showLocationSettingsDialog();
-        }else{
+        } else {
             recyclerView2 = root.findViewById(R.id.recyclerView2);
             recyclerView2.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
             LinearSnapHelper snapHelper = new LinearSnapHelper();
             snapHelper.attachToRecyclerView(recyclerView2);
             progressBar = root.findViewById(R.id.progressBar);
+
+
+            progressBar2 = root.findViewById(R.id.progressBar2);
+            recyclerView3=binding.hotels;
+            recyclerView3.setLayoutManager(new LinearLayoutManager(getContext(),LinearLayoutManager.HORIZONTAL,false));
+            LinearSnapHelper snapHelper2 = new LinearSnapHelper();
+            snapHelper2.attachToRecyclerView(recyclerView3);
 
             RecyclerView recyclerView = binding.recyclerView;
             recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -98,12 +109,24 @@ public class HomeFragment extends Fragment {
             getYourPlaceDescriptionData(new OnDataReceivedListener() {
                 @Override
                 public void onDataReceived(List<Recommendation> placeList) {
-                    //handel place list here
-                    currentPosition=0;
+                    currentPosition = 0;
                     recomen = placeList;
                     progressBar.setVisibility(View.GONE);
                     recadaptor = new RecommendationAdapter(getActivity(), recomen);
                     recyclerView2.setAdapter(recadaptor);
+                    startAutoScroll();
+                }
+            });
+
+
+            getYourHotelDescriptionData(new OnDataReceivedListener() {
+                @Override
+                public void onDataReceived(List<Recommendation> placeList) {
+                    currentPosition = 0;
+                    hotelrecomen = placeList;
+                    progressBar2.setVisibility(View.GONE);
+                    hoteladaptor = new RecommendationAdapter(getActivity(), hotelrecomen);
+                    recyclerView3.setAdapter(hoteladaptor);
                     startAutoScroll();
                 }
             });
@@ -143,7 +166,7 @@ public class HomeFragment extends Fragment {
                 @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                     recyclerView.setVisibility(View.VISIBLE);
-                    String selected=cityNames.get(position);
+                    String selected = cityNames.get(position);
                     Address address = GetGeoInfo(selected);
                     if (address != null) {
                         LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
@@ -160,23 +183,28 @@ public class HomeFragment extends Fragment {
                     adapter = new PlaceDescriptionAdapter(placeDescriptions);
                     txt.setVisibility(View.VISIBLE);
                     recyclerView.setAdapter(adapter);
+                    Button select = binding.selectbtn;
                     adapter.setOnItemCheckedChangeListener(checkedItemCount -> {
-                        if(checkedItemCount>0)
+                        if(checkedItemCount==0)
                         {
-                            Button select=binding.selectbtn;
+                            select.setVisibility(View.GONE);
+                        }
+                        if (checkedItemCount > 0)
+                        {
+
                             select.setVisibility(View.VISIBLE);
                             select.setOnClickListener(new View.OnClickListener() {
                                 @Override
                                 public void onClick(View v) {
-                                    if(checkedItemCount>0)
-                                    {
+                                    if (checkedItemCount > 0) {
                                         select.setVisibility(View.GONE);
-                                        Intent intent=new Intent(getContext(), MapsActivity.class);
-                                        String []array= adapter.getSelectedItems();
+                                        Intent intent = new Intent(getContext(), MapsActivity.class);
+                                        String[] array = adapter.getSelectedItems();
                                         intent.putExtra("Name", array);
+                                        intent.putExtra("Main", "Tourist_place");
                                         intent.putExtra("State", "Karnataka");
                                         startActivity(intent);
-                                    }else {
+                                    } else {
                                         Toast.makeText(getContext(), "Select at least 1 item", Toast.LENGTH_SHORT).show();
                                     }
                                 }
@@ -189,19 +217,19 @@ public class HomeFragment extends Fragment {
         }
 
 
-            // Start auto-scrolling when the activity is created
-            handler2 = new Handler();
+        // Start auto-scrolling when the activity is created
+        handler2 = new Handler();
 
-            autoScrollRunnable = new Runnable() {
-                @Override
-                public void run() {
-                    if (recadaptor.getItemCount() > 0) {
-                        currentPosition = (currentPosition + 1) % recadaptor.getItemCount();
-                        recyclerView2.smoothScrollToPosition(currentPosition);
-                        handler2.postDelayed(this, AUTO_SCROLL_DELAY);
-                    }
+        autoScrollRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (recadaptor.getItemCount() > 0) {
+                    currentPosition = (currentPosition + 1) % recadaptor.getItemCount();
+                    recyclerView2.smoothScrollToPosition(currentPosition);
+                    handler2.postDelayed(this, AUTO_SCROLL_DELAY);
                 }
-            };
+            }
+        };
         // Stop auto-scrolling when the user interacts with the RecyclerView
         recyclerView2.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
             @Override
@@ -223,16 +251,17 @@ public class HomeFragment extends Fragment {
     }
 
     private void startAutoScroll() {
-        if(isfirst)
-        {
+        if (isfirst) {
             handler2.postDelayed(autoScrollRunnable, AUTO_SCROLL_DELAY);
-            isfirst=false;
+            isfirst = false;
         }
     }
+
     private boolean isLocationEnabled() {
         LocationManager locationManager = (LocationManager) requireActivity().getSystemService(Context.LOCATION_SERVICE);
         return locationManager != null && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
     }
+
     private void showLocationSettingsDialog() {
         // Build an alert dialog to prompt the user to enable location services
         new androidx.appcompat.app.AlertDialog.Builder(requireContext())
@@ -260,15 +289,13 @@ public class HomeFragment extends Fragment {
             handler.post(() -> liveData.setValue(data));
         }).start();
     }
-    private void getYourPlaceDescriptionData(OnDataReceivedListener listener) {
-            progressBar.setVisibility(View.VISIBLE);
 
-        LocationUtils.getCurrentLocation(getContext(), new LocationUtils.LocationCallback() {
-            int count=0;
-            @Override
-            public void onLocationReceived(double latitude, double longitude) {
+    private void getYourPlaceDescriptionData(OnDataReceivedListener listener) {
+        progressBar.setVisibility(View.VISIBLE);
+
                 DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tourist_place").child("Karnataka");
                 databaseReference.addValueEventListener(new ValueEventListener() {
+                    int count = 0;
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         List<Recommendation> placeList = new ArrayList<>();
@@ -280,40 +307,79 @@ public class HomeFragment extends Fragment {
                             String rating = dataSnapshot.child("Rating").getValue().toString();
                             String new_rating = "";
                             if (place.isEmpty()) place = " ";
-                            if (review.isEmpty()) review = " ";
                             if (photo.isEmpty()) photo = " ";
-                            if (rating.isEmpty()){
+                            if (rating.isEmpty()) {
                                 rating = "3";
-                                new_rating="★★★☆☆";
-                            }else{
-                                for(int i=1;i<=5;i++)
-                                {
-                                    if(i<Math.floor(Float.parseFloat(rating)))
-                                    {
-                                        new_rating=new_rating + "★";
-                                    }else {
-                                        new_rating=new_rating + "☆";
+                                new_rating = "★★★☆☆";
+                            } else {
+                                for (int i = 1; i <= 5; i++) {
+                                    if (i < Math.floor(Float.parseFloat(rating))) {
+                                        new_rating = new_rating + "★";
+                                    } else {
+                                        new_rating = new_rating + "☆";
                                     }
-
                                 }
                             }
-                            if (Math.round(Float.parseFloat(rating))>=3 && count<30 &&LocationUtils_calculate.calculateDistance(new LatLng(Double.parseDouble(dataSnapshot.child("Latitude").getValue().toString()), Double.parseDouble(dataSnapshot.child("Longitude").getValue().toString())), new LatLng(latitude,longitude)) <= 25)
-                            {
+                            if (Math.round(Float.parseFloat(rating)) >= 4 && count < 30 && dataSnapshot.child("Latitude").exists() &&dataSnapshot.child("Longitude").exists()) {
                                 count++;
-                                placeList.add(new Recommendation(place, review, photo,new_rating,new LatLng(Double.parseDouble(dataSnapshot.child("Latitude").getValue().toString()),Double.parseDouble(dataSnapshot.child("Longitude").getValue().toString()))));
+                                placeList.add(new Recommendation(place, review, photo, new_rating, new LatLng(Double.parseDouble(dataSnapshot.child("Latitude").getValue().toString()), Double.parseDouble(dataSnapshot.child("Longitude").getValue().toString()))));
                             }
                         }
-
                         // Notify the listener with the result
                         listener.onDataReceived(placeList);
                     }
-
                     @Override
                     public void onCancelled(@NonNull DatabaseError databaseError) {
                         // Handle potential errors
-                        Log.e("ChildCount", "Error retrieving data: " + databaseError.getMessage());
                     }
                 });
+    }
+
+
+
+    private void getYourHotelDescriptionData(OnDataReceivedListener listener) {
+        progressBar2.setVisibility(View.VISIBLE);
+
+        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Hotels").child("Karnataka");
+        databaseReference.addValueEventListener(new ValueEventListener() {
+            int count = 0;
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                List<Recommendation> placeList = new ArrayList<>();
+
+                for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+                    String place = dataSnapshot.child("Place").getValue().toString();
+                    String review;
+                    String photo = dataSnapshot.child("Photo").getValue().toString();
+                    String rating = dataSnapshot.child("Rating").getValue().toString();
+                    review =place+" is the one of the best place,it has almost all facility in neat condition";
+                    String new_rating = "";
+                    if (place.isEmpty()) place = " ";
+                    if (photo.isEmpty()) photo = " ";
+                    if (rating.isEmpty()) {
+                        rating = "3";
+                        new_rating = "★★★☆☆";
+                    } else {
+                        for (int i = 1; i <= 5; i++) {
+                            if (i < Math.floor(Float.parseFloat(rating))) {
+                                new_rating = new_rating + "★";
+                            } else {
+                                new_rating = new_rating + "☆";
+                            }
+                        }
+                    }
+                    if (Math.round(Float.parseFloat(rating)) >= 4 && count < 30 ) {
+                        count++;
+                        placeList.add(new Recommendation(place, review, photo, new_rating, new LatLng(Double.parseDouble(dataSnapshot.child("Latitude").getValue().toString()), Double.parseDouble(dataSnapshot.child("Longitude").getValue().toString()))));
+                    }
+                }
+                // Notify the listener with the result
+                listener.onDataReceived(placeList);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                // Handle potential errors
             }
         });
     }
@@ -342,33 +408,31 @@ public class HomeFragment extends Fragment {
                     String review = dataSnapshot.child("Description").getValue().toString();
                     String photo = dataSnapshot.child("Photo").getValue().toString();
                     String rating = dataSnapshot.child("Rating").getValue().toString();
-                    String new_rating="";
+                    String new_rating = "";
                     if (place.isEmpty()) place = " ";
-                    if (review.isEmpty()) review = " ";
+                    if (review.isEmpty() || review.startsWith(" ")) review = place+"is one of the best place which you can visit.";
                     if (photo.isEmpty()) photo = " ";
-                    if (rating.isEmpty()){
+                    if (rating.isEmpty()) {
                         rating = "3";
-                        new_rating="★★☆☆☆";
-                    }else{
-                        for(int i=1;i<=5;i++)
-                        {
-                            if(i<Math.floor(Float.parseFloat(rating)))
-                            {
-                                new_rating=new_rating + "★";
-                            }else {
-                                new_rating=new_rating + "☆";
+                        new_rating = "★★☆☆☆";
+                    } else {
+                        for (int i = 1; i <= 5; i++) {
+                            if (i < Math.floor(Float.parseFloat(rating))) {
+                                new_rating = new_rating + "★";
+                            } else {
+                                new_rating = new_rating + "☆";
                             }
 
                         }
                     }
 
-                    if(LocationUtils_calculate.calculateDistance(new LatLng(Double.parseDouble(dataSnapshot.child("Latitude").getValue().toString()), Double.parseDouble(dataSnapshot.child("Longitude").getValue().toString())),new LatLng(address.get(0).getLatitude(),address.get(0).getLongitude()))<=20)
-                    {
-                        dummyData1.add(new PlaceDescription(place, review, photo,new_rating,new LatLng(Double.parseDouble(dataSnapshot.child("Latitude").getValue().toString()),Double.parseDouble(dataSnapshot.child("Longitude").getValue().toString()))));
+                    if (LocationUtils_calculate.calculateDistance(new LatLng(Double.parseDouble(dataSnapshot.child("Latitude").getValue().toString()), Double.parseDouble(dataSnapshot.child("Longitude").getValue().toString())), new LatLng(address.get(0).getLatitude(), address.get(0).getLongitude())) <= 20) {
+                        dummyData1.add(new PlaceDescription(place, review, photo, new_rating, new LatLng(Double.parseDouble(dataSnapshot.child("Latitude").getValue().toString()), Double.parseDouble(dataSnapshot.child("Longitude").getValue().toString()))));
                         // Use handler to post UI updates to the main thread
                         handler.post(() -> liveData.setValue(dummyData1));
                     }
                 }
+
                 @Override
                 public void onChildChanged(@NonNull DataSnapshot dataSnapshot, String previousChildName) {
                     // Handle changes to existing data if needed
@@ -387,7 +451,6 @@ public class HomeFragment extends Fragment {
                 @Override
                 public void onCancelled(@NonNull DatabaseError databaseError) {
                     // Handle potential errors
-                    Log.e("ChildCount", "Error retrieving data: " + databaseError.getMessage());
                 }
             });
 
@@ -420,7 +483,6 @@ public class HomeFragment extends Fragment {
             } catch (IOException e) {
                 // Handle geocoding exceptions
                 Toast.makeText(getContext(), "Geocoding error: Check spelling and try again", Toast.LENGTH_SHORT).show();
-                e.printStackTrace(); // Log the exception for further debugging if needed
             }
         } else {
             // Empty or null location
@@ -430,7 +492,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void updateListView(List<Address> addresses) {
-        cityNames= new ArrayList<>();
+        cityNames = new ArrayList<>();
         for (Address address : addresses) {
             String cityName = address.getLocality();
             if (cityName != null) {
@@ -438,7 +500,7 @@ public class HomeFragment extends Fragment {
             }
         }
 
-        nameAdapter= new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, cityNames);
+        nameAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, cityNames);
 
         // Use handler to post UI updates to the main thread
         handler.post(() -> {

@@ -9,10 +9,17 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.io.IOException;
 import java.util.List;
@@ -50,23 +57,80 @@ public class View_Activity extends AppCompatActivity {
 
         Button button = findViewById(R.id.button9);
         String[] names = {name1};
-        button.setOnClickListener(new View.OnClickListener() {
+        isindatabase(name1,latitude,longitude, new DatabaseCallback() {
             @Override
-            public void onClick(View v) {
-                Intent intent1 = new Intent(View_Activity.this, MapsActivity.class);
-                intent1.putExtra("Name", names);
-                Geocoder geo = new Geocoder(View_Activity.this, Locale.getDefault());
-                try {
-                        List<Address> add = geo.getFromLocation(latitude, longitude, 1);
-                        if (add != null && !add.isEmpty()) {
-                            intent1.putExtra("State", add.get(0).getAdminArea().toString());
-                            startActivity(intent1);
+            public void onCallback(boolean isInDatabase) {
+                if (!isInDatabase) {
+                    button.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Geocoder geo =new Geocoder(View_Activity.this,Locale.getDefault());
+                            try {
+                                List<Address> add = geo.getFromLocation(latitude,longitude,1);
+                                Intent intent1 = new Intent(View_Activity.this, MapsActivity.class);
+                                String state = add.get(0).getAdminArea();
+                                intent1.putExtra("Name", names);
+                                intent1.putExtra("Main", "Tourist_place");
+                                intent1.putExtra("State", state);
+                                Log.d("TAG", "onClick: "+state);
+                                startActivity(intent1);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
                         }
-                } catch (IOException | NumberFormatException e) {
-                    // Handle the exception (IOException for geocoding failure, NumberFormatException for parsing failure)
-                    Log.e("View_Activity", "Error in geocoding or parsing: " + e.getMessage());
+                    });
+                } else {
+                    button.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Geocoder geo =new Geocoder(View_Activity.this,Locale.getDefault());
+                            try {
+                                Log.d("TAG", "onClick: Hotel");
+                            List<Address> add = geo.getFromLocation(latitude,longitude,1);
+                            Intent intent1 = new Intent(View_Activity.this, MapsActivity.class);
+                            String state = add.get(0).getAdminArea();
+                            intent1.putExtra("Name", names);
+                            intent1.putExtra("Main", "Hotels");
+                            intent1.putExtra("State", state);
+                            startActivity(intent1);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    });
                 }
             }
         });
     }
+
+    public interface DatabaseCallback {
+        void onCallback(boolean isInDatabase);
+    }
+
+    public void isindatabase(String name1, double latitude,double longitude,DatabaseCallback callback) {
+        Geocoder geo =new Geocoder(View_Activity.this,Locale.getDefault());
+        String state;
+        try {
+            List<Address> add = geo.getFromLocation(latitude, longitude, 1);
+            state = add.get(0).getAdminArea();
+        }catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Hotels").child(state);
+        databaseReference.child(name1).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                boolean isInDatabase = snapshot.exists();
+                callback.onCallback(isInDatabase);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                // Handle database error if needed
+                callback.onCallback(false);
+            }
+        });
+    }
+
 }
+

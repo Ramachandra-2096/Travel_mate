@@ -41,6 +41,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.googlemaps.Utility.NetworkChangeListener;
+import com.example.googlemaps.ui.home.PlaceDescription;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationListener;
@@ -60,6 +61,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -73,6 +75,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -310,11 +313,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (names != null) {
             if(!names[0].isEmpty())
             {
-                String state=intent.getStringExtra("State");
-                assert state != null;
-                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tourist_place").child(state);
+                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(intent.getStringExtra("Main")).child(intent.getStringExtra("State"));
                 for (String name : names) {
-                   databaseReference.child(name).addValueEventListener(new ValueEventListener() {
+                    Log.d("TAG", name);
+                    String name1=name.replaceAll("[^\\p{IsKannada}\\p{IsLatin}]", " ");
+                    Log.d("TAG", name1);
+                   databaseReference.child(name1).addValueEventListener(new ValueEventListener() {
                        @Override
                        public void onDataChange(@NonNull DataSnapshot snapshot) {
                            try {
@@ -322,6 +326,27 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                double longitude  = snapshot.child("Longitude").getValue(Double.class);
                                String place = snapshot.child("Place").getValue(String.class);
                                String description = snapshot.child("Description").getValue(String.class);
+                               final String final_desc;
+                               String[] hotelDescriptions = new String[9];
+                                   hotelDescriptions[0] = "Discover ultimate luxury and indulgence at our five-star hotel, where opulent suites, exquisite dining, and personalized service redefine hospitality.";
+                                   hotelDescriptions[1] = "Escape to our charming boutique hotel, nestled in the heart of the city, offering a blend of historical elegance, modern comforts, and personalized attention.";
+                                   hotelDescriptions[2] = "Unwind in paradise at our beachfront resort, where sun-drenched days, crystal-clear waters, and world-class amenities create an idyllic tropical retreat.";
+                                   hotelDescriptions[3] = "Experience urban sophistication at our contemporary hotel, strategically located for both business and leisure travelers, featuring stylish accommodations and cutting-edge facilities.";
+                                   hotelDescriptions[4] = "Immerse yourself in cultural richness at our heritage hotel, a restored landmark that seamlessly blends historic charm with modern conveniences, providing a unique glimpse into the past.";
+                                   hotelDescriptions[5] = "Elevate your corporate events at our state-of-the-art business hotel, boasting spacious meeting venues, advanced technology, and impeccable service for a seamless conference experience.";
+                                   hotelDescriptions[6] = "Savor culinary delights at our gastronomic haven, a hotel renowned for its diverse dining options, from award-winning restaurants to trendy lounges, promising a culinary journey for every palate.";
+                                   hotelDescriptions[7] = "Family-friendly fun awaits at our kid-friendly hotel, featuring exciting activities, a dedicated play area, and spacious accommodations designed to cater to the needs of both parents and children.";
+                                   hotelDescriptions[8] = "Reconnect with nature at our eco-friendly resort, surrounded by lush landscapes and sustainable practices, offering a tranquil escape that harmonizes with the environment.";
+                               if(!intent.getStringExtra("Main").equals("Hotels")){
+                                   if(description.isEmpty()||description.startsWith(" "))
+                                   {
+                                       description =place+" is one of the best place which you can visit in "+"Karnataka"+ "  trip.";
+                                   }
+                               }else{
+                                   Random random=new Random();
+                                   description=place+hotelDescriptions[random.nextInt(10)];
+                               }
+                               final_desc=description;
                                // Call your draw_tour_location method
                                // Define a Handler as a member variable in your class
                                Handler mHandler = new Handler(Looper.getMainLooper());
@@ -329,13 +354,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                mHandler.post(new Runnable() {
                                    @Override
                                    public void run() {
-                                       draw_tour_location(latitude, longitude, place, description);
+                                       draw_tour_location(latitude, longitude, place, final_desc);
                                    }
                                });
 
                            } catch (NumberFormatException e) {
                                // Handle the case where parsing to double fails
-                               e.printStackTrace();
                            }
                        }
 
@@ -365,7 +389,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             } catch (IOException e) {
                 // Handle geocoding exceptions
                 Toast.makeText(MapsActivity.this, "Geocoding error: Check spelling and try again", Toast.LENGTH_SHORT).show();
-                e.printStackTrace(); // Log the exception for further debugging if needed
             }
         } else {
             // Empty or null location
@@ -624,7 +647,6 @@ private void addMarkers() {
                 }
                 return ge.getFromLocation(usr.latitude, usr.longitude, 1);
             } catch (IOException e) {
-                e.printStackTrace();
                 return null;
             }
         }
@@ -687,7 +709,7 @@ private void addMarkers() {
                 .snippet(snippet);
         Marker marker = mMap.addMarker(markerOptions);
         markerList.add(marker);
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 12), 2000, null);
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(location, 12), 1000, null);
     }
     public void draw_tour_location(double latitude, double longitude, String place, String description) {
         // Customize this line to set a custom marker icon if needed
@@ -699,7 +721,7 @@ private void addMarkers() {
                 .icon(customMarker);
         mMap.addMarker(markerOptions);
         CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(new LatLng(latitude, longitude), 12);
-        mMap.animateCamera(cameraUpdate, 2000, null);
+        mMap.animateCamera(cameraUpdate, 1000, null);
     }
 
     public void showLocation(View view) {
@@ -725,7 +747,7 @@ private void addMarkers() {
                         .title("Your Location")
                         .icon(customMarker);
                 usermarker = mMap.addMarker(markerOptions);
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 20), 4000, null);
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLocation, 20), 500, null);
             } else {
                 showLocation(view);
             }
@@ -777,7 +799,6 @@ private void addMarkers() {
                 try {
                     List<Address> addresses = geo.getFromLocation(usr.latitude, usr.longitude, 1);
                     // Use addresses if needed
-
                     DatabaseReference mDatabase = FirebaseDatabase.getInstance().getReference();
                     mDatabase.child("Tour").get().addOnCompleteListener(new OnCompleteListener<DataSnapshot>() {
                         @Override
@@ -796,15 +817,47 @@ private void addMarkers() {
                                                 location_added =true;
                                             }
                                     }
-                                    if(!location_added)
-                                    {
-                                        Toast.makeText(MapsActivity.this, "Data not found for your location", Toast.LENGTH_SHORT).show();
-                                    }
                                 }
                             }
                         }
-                    });progressDialog.dismiss();
+                    });
+                    Geocoder geo2=new Geocoder(MapsActivity.this,Locale.getDefault());
+                    String state= geo2.getFromLocation(usr.latitude,usr.longitude,1).get(0).getAdminArea();
+                    DatabaseReference mDatabase1 = FirebaseDatabase.getInstance().getReference().child("Tourist_place").child(state);
+                    mDatabase1.addChildEventListener(new ChildEventListener() {
+                        @Override
+                        public void onChildAdded(@NonNull DataSnapshot dataSnapshot, String previousChildName) {
+                            double latitude = dataSnapshot.child("Latitude").getValue(Double.class);
+                            double longitude = dataSnapshot.child("Longitude").getValue(Double.class);
+                            LatLng location = new LatLng(latitude, longitude);
+                            double distance = LocationUtils_calculate.calculateDistance(new LatLng(usr.latitude, usr.longitude), location);
+                            if (distance <= 100) {
+                                updateMapForTour1(dataSnapshot,usr);
+                                location_added =true;
+                            }
+                        }
 
+                        @Override
+                        public void onChildChanged(@NonNull DataSnapshot dataSnapshot, String previousChildName) {
+                            // Handle changes to existing data if needed
+                        }
+
+                        @Override
+                        public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+                            // Handle removal of data if needed
+                        }
+
+                        @Override
+                        public void onChildMoved(@NonNull DataSnapshot dataSnapshot, String previousChildName) {
+                            // Handle movement of data if needed
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+                            // Handle potential errors
+                        }
+                    });
+                    progressDialog.dismiss();
                 } catch (IOException e) {
                     progressDialog.dismiss();
                     throw new RuntimeException(e);
@@ -843,13 +896,45 @@ private void addMarkers() {
                                                 location_added =true;
                                             }
                                     }
-                                    if(!location_added)
-                                    {
-                                        Toast.makeText(MapsActivity.this, "Data not found for This location", Toast.LENGTH_SHORT).show();
-                                        progressDialog.dismiss();
-                                    }
                                 }
                             }
+                        }
+                    });
+                    String state;
+                    Geocoder ge=new Geocoder(MapsActivity.this,Locale.getDefault());
+                    state = ge.getFromLocation(lction.latitude,lction.longitude,1).get(0).getAdminArea();
+                    DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Tourist_place").child(state);
+                    databaseReference.addChildEventListener(new ChildEventListener() {
+                        @Override
+                        public void onChildAdded(@NonNull DataSnapshot dataSnapshot, String previousChildName) {
+                            double latitude = dataSnapshot.child("Latitude").getValue(Double.class);
+                            double longitude = dataSnapshot.child("Longitude").getValue(Double.class);
+                            LatLng location = new LatLng(latitude, longitude);
+                            double distance = LocationUtils_calculate.calculateDistance(new LatLng(lction.latitude, lction.longitude), location);
+                            if (distance <= 100) {
+                                updateMapForTour1(dataSnapshot,lction);
+                                location_added =true;
+                            }
+                        }
+
+                        @Override
+                        public void onChildChanged(@NonNull DataSnapshot dataSnapshot, String previousChildName) {
+                            // Handle changes to existing data if needed
+                        }
+
+                        @Override
+                        public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+                            // Handle removal of data if needed
+                        }
+
+                        @Override
+                        public void onChildMoved(@NonNull DataSnapshot dataSnapshot, String previousChildName) {
+                            // Handle movement of data if needed
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+                            // Handle potential errors
                         }
                     });
                     progressDialog.dismiss();
@@ -882,6 +967,24 @@ private void addMarkers() {
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(lov, 12), 2000, null);
             }
         }
+    }
+    private void updateMapForTour1(DataSnapshot tourSnapshot,LatLng usr) {
+                double place_lat = tourSnapshot.child("Latitude").getValue(Double.class);
+                double place_long = tourSnapshot.child("Longitude").getValue(Double.class);
+                LatLng lov = new LatLng(place_lat, place_long);
+
+                double place_distance = LocationUtils_calculate.calculateDistance(new LatLng(usr.latitude, usr.longitude), lov);
+                int markerColor = getMarkerColor(place_distance);
+
+                MarkerOptions markerOptions = new MarkerOptions()
+                        .position(lov)
+                        .title(tourSnapshot.getKey())
+                        .snippet(tourSnapshot.child("Description").getValue().toString()+" "+place_distance)
+                        .icon(BitmapDescriptorFactory.defaultMarker(markerColor));
+
+                Marker marker = mMap.addMarker(markerOptions);
+                markerList.add(marker);
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(lov, 12), 2000, null);
     }
     private int getMarkerColor(double place_distance) {
         if (place_distance <= 20) {

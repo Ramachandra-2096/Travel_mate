@@ -5,6 +5,7 @@ import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.SearchView;
 import android.widget.TextView;
@@ -43,6 +44,8 @@ NetworkChangeListener networkChangeListener=new NetworkChangeListener();
     }
     @Override
     public void onBackPressed() {
+        Button b= findViewById(R.id.selectbtn);
+        b.setVisibility(View.GONE);
         SearchView searchView=findViewById(R.id.searchView2);
         ListView list=findViewById(R.id.Listview_search_home);
         RecyclerView rec1=findViewById(R.id.recyclerView);
