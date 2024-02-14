@@ -55,7 +55,7 @@ NetworkChangeListener networkChangeListener=new NetworkChangeListener();
         ListView list=findViewById(R.id.Listview_search_home);
         RecyclerView rec1=findViewById(R.id.recyclerView);
         rec1.setVisibility(View.GONE);
-        if (searchView.isIconified()) {
+
             // Search view is not active, ask for exit
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setMessage("Do you want to exit?");
@@ -66,12 +66,11 @@ NetworkChangeListener networkChangeListener=new NetworkChangeListener();
             builder.setNegativeButton("No", (dialog, which) -> {
             });
             builder.show();
-        } else {
             searchView.clearFocus();
             list.setVisibility(View.GONE);
             // Search view is active, close it
             searchView.setIconified(true);
-        }
+
     }
 
     @Override

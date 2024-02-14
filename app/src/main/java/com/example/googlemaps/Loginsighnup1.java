@@ -36,7 +36,6 @@ public class Loginsighnup1 extends AppCompatActivity {
             confirmPasswordEditText = findViewById(R.id.confirmPassword);
             registerButton = findViewById(R.id.button6);
             sharedPreferences = getSharedPreferences("MyPreferences", Context.MODE_PRIVATE);
-
             mAuth = FirebaseAuth.getInstance();
             databaseReference = FirebaseDatabase.getInstance().getReference("users");
             registerButton.setOnClickListener(new View.OnClickListener() {
