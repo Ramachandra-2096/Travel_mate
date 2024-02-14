@@ -312,8 +312,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         String[] names = intent.getStringArrayExtra("Name");
         if (names != null) {
             if(!names[0].isEmpty())
-            {
-                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(intent.getStringExtra("Main")).child(intent.getStringExtra("State"));
+            {String state="Karnataka";
+                DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference(intent.getStringExtra("Main")).child(state);
                 for (String name : names) {
                     Log.d("TAG", name);
                     String name1=name.replaceAll("[^\\p{IsKannada}\\p{IsLatin}]", " ");
@@ -322,12 +322,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                        @Override
                        public void onDataChange(@NonNull DataSnapshot snapshot) {
                            try {
-                               double latitude = snapshot.child("Latitude").getValue(Double.class);
-                               double longitude  = snapshot.child("Longitude").getValue(Double.class);
-                               String place = snapshot.child("Place").getValue(String.class);
-                               String description = snapshot.child("Description").getValue(String.class);
-                               final String final_desc;
-                               String[] hotelDescriptions = new String[9];
+                               if (snapshot!= null) {
+                                   double latitude = snapshot.child("Latitude").getValue(Double.class);
+                                   double longitude = snapshot.child("Longitude").getValue(Double.class);
+                                   String place = snapshot.child("Place").getValue(String.class);
+                                   String description = snapshot.child("Description").getValue(String.class);
+                                   final String final_desc;
+                                   String[] hotelDescriptions = new String[9];
                                    hotelDescriptions[0] = "Discover ultimate luxury and indulgence at our five-star hotel, where opulent suites, exquisite dining, and personalized service redefine hospitality.";
                                    hotelDescriptions[1] = "Escape to our charming boutique hotel, nestled in the heart of the city, offering a blend of historical elegance, modern comforts, and personalized attention.";
                                    hotelDescriptions[2] = "Unwind in paradise at our beachfront resort, where sun-drenched days, crystal-clear waters, and world-class amenities create an idyllic tropical retreat.";
@@ -337,30 +338,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                    hotelDescriptions[6] = "Savor culinary delights at our gastronomic haven, a hotel renowned for its diverse dining options, from award-winning restaurants to trendy lounges, promising a culinary journey for every palate.";
                                    hotelDescriptions[7] = "Family-friendly fun awaits at our kid-friendly hotel, featuring exciting activities, a dedicated play area, and spacious accommodations designed to cater to the needs of both parents and children.";
                                    hotelDescriptions[8] = "Reconnect with nature at our eco-friendly resort, surrounded by lush landscapes and sustainable practices, offering a tranquil escape that harmonizes with the environment.";
-                               if(!intent.getStringExtra("Main").equals("Hotels")){
-                                   if(description.isEmpty()||description.startsWith(" "))
-                                   {
-                                       description =place+" is one of the best place which you can visit in "+"Karnataka"+ "  trip.";
+                                   if (!intent.getStringExtra("Main").equals("Hotels")) {
+                                       if (description.isEmpty() || description.startsWith(" ")) {
+                                           description = place + " is one of the best place which you can visit in " + "Karnataka" + "  trip.";
+                                       }
+                                   } else {
+                                       Random random = new Random();
+                                       description = place + hotelDescriptions[random.nextInt(10)];
                                    }
-                               }else{
-                                   Random random=new Random();
-                                   description=place+hotelDescriptions[random.nextInt(10)];
-                               }
-                               final_desc=description;
-                               // Call your draw_tour_location method
-                               // Define a Handler as a member variable in your class
-                               Handler mHandler = new Handler(Looper.getMainLooper());
-                               // Inside your background thread method
-                               mHandler.post(new Runnable() {
-                                   @Override
-                                   public void run() {
-                                       draw_tour_location(latitude, longitude, place, final_desc);
-                                   }
-                               });
+                                   final_desc = description;
+                                   // Call your draw_tour_location method
+                                   // Define a Handler as a member variable in your class
+                                   Handler mHandler = new Handler(Looper.getMainLooper());
+                                   // Inside your background thread method
+                                   mHandler.post(new Runnable() {
+                                       @Override
+                                       public void run() {
+                                           draw_tour_location(latitude, longitude, place, final_desc);
+                                       }
+                                   });
 
-                           } catch (NumberFormatException e) {
-                               // Handle the case where parsing to double fails
+                               }
                            }
+                           catch(NumberFormatException e){
+                                   // Handle the case where parsing to double fails
+                               }
                        }
 
                        @Override
@@ -861,7 +863,6 @@ private void addMarkers() {
                 } catch (IOException e) {
                     progressDialog.dismiss();
                     throw new RuntimeException(e);
-
                 }
             }
         });

@@ -71,6 +71,10 @@ public class HomeFragment extends Fragment {
 
     private MutableLiveData<List<PlaceDescription>> liveData = new MutableLiveData<>();
     private int currentPosition = 0;
+    private int currentPosition2 = 0;
+    private boolean isfirst2 = true;
+    private Handler handler3;
+    private Runnable autoScrollRunnable2;
     private boolean isfirst = true;
     private static final int AUTO_SCROLL_DELAY = 6000; // Adjust the delay as needed
     private Handler handler2;
@@ -122,12 +126,12 @@ public class HomeFragment extends Fragment {
             getYourHotelDescriptionData(new OnDataReceivedListener() {
                 @Override
                 public void onDataReceived(List<Recommendation> placeList) {
-                    currentPosition = 0;
+                    currentPosition2 = 0;
                     hotelrecomen = placeList;
                     progressBar2.setVisibility(View.GONE);
                     hoteladaptor = new RecommendationAdapter(getActivity(), hotelrecomen);
                     recyclerView3.setAdapter(hoteladaptor);
-                    startAutoScroll();
+                    startAutoScroll2();
                 }
             });
             searchView.setIconified(true);
@@ -230,6 +234,18 @@ public class HomeFragment extends Fragment {
                 }
             }
         };
+        handler3 = new Handler();
+
+        autoScrollRunnable2 = new Runnable() {
+            @Override
+            public void run() {
+                if (hoteladaptor.getItemCount() > 0) {
+                    currentPosition2 = (currentPosition2 + 1) % hoteladaptor.getItemCount();
+                    recyclerView3.smoothScrollToPosition(currentPosition2);
+                    handler3.postDelayed(this, AUTO_SCROLL_DELAY);
+                }
+            }
+        };
         // Stop auto-scrolling when the user interacts with the RecyclerView
         recyclerView2.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
             @Override
@@ -249,14 +265,21 @@ public class HomeFragment extends Fragment {
 
         return root;
     }
-
+    private void startAutoScroll2() {
+        if (isfirst2) {
+            handler2.postDelayed(autoScrollRunnable2, AUTO_SCROLL_DELAY);
+            isfirst2 = false;
+        }
+    }
     private void startAutoScroll() {
         if (isfirst) {
             handler2.postDelayed(autoScrollRunnable, AUTO_SCROLL_DELAY);
             isfirst = false;
         }
     }
-
+    private void stopAutoScroll2() {
+        handler2.removeCallbacksAndMessages(null); // Stop auto-scrolling for the second RecyclerView
+    }
     private boolean isLocationEnabled() {
         LocationManager locationManager = (LocationManager) requireActivity().getSystemService(Context.LOCATION_SERVICE);
         return locationManager != null && locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
@@ -514,6 +537,8 @@ public class HomeFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        stopAutoScroll2();
+        stopAutoScroll();
         binding = null;
     }
 }

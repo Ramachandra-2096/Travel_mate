@@ -1,9 +1,14 @@
 package com.example.googlemaps;
 
 import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.IntentFilter;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
@@ -31,7 +36,7 @@ NetworkChangeListener networkChangeListener=new NetworkChangeListener();
 
      binding = ActivityHomeBinding.inflate(getLayoutInflater());
      setContentView(binding.getRoot());
-
+        checkLocationEnabled();
         BottomNavigationView navView = findViewById(R.id.nav_view);
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
@@ -81,4 +86,30 @@ NetworkChangeListener networkChangeListener=new NetworkChangeListener();
         unregisterReceiver(networkChangeListener);
         super.onStop();
     }
+    private void checkLocationEnabled() {
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
+        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            // Location is not enabled, show a dialog to prompt the user to enable it
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setMessage("Location is not enabled. Do you want to enable it?");
+            builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    // Open location settings
+                    Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                    startActivity(intent);
+                }
+            });
+            builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    // Handle the situation when the user chooses not to enable location
+                    // You can customize this part based on your app's requirements
+                }
+            });
+            builder.show();
+        }
+    }
+
 }

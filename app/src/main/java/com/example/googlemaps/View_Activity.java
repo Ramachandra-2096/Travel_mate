@@ -117,7 +117,8 @@ public class View_Activity extends AppCompatActivity {
             throw new RuntimeException(e);
         }
         DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference("Hotels").child(state);
-        databaseReference.child(name1).addListenerForSingleValueEvent(new ValueEventListener() {
+        String name=name1.replaceAll("[^\\p{IsKannada}\\p{IsLatin}]", " ");
+        databaseReference.child(name).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 boolean isInDatabase = snapshot.exists();

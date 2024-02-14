@@ -75,9 +75,11 @@
         android:id="@+id/button8"
         android:layout_width="51dp"
         android:layout_height="wrap_content"
-        android:background="@drawable/round_button"
+        android:background="@drawable/mapbutton"
         android:foreground="@drawable/map"
-        android:scaleType="fitXY"
+        android:layout_marginRight="14dp"
+        android:layout_marginBottom="32dp"
+        android:translationZ="2dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
